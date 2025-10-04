@@ -90,5 +90,26 @@ Outputs (in `data/frames/`):
 - `koi_manifest.parquet`
 - Optionally `kepler_timeseries_summary.*` if you run earlier single-pass parser path
 
-Git note:
-- Large CSVs exceed GitHub’s 100MB limit and are ignored by `.gitignore`. Prefer Parquet for tracked artifacts or use Git LFS if you must version CSVs.
+
+## Train a model (FT-Transformer)
+
+Supervised FT-Transformer-style trainer for the merged Parquet. Auto-detects numeric/categorical features and encodes the `label` column (`CONFIRMED`, `CANDIDATE`, `FALSE POSITIVE`). Inspired by an FT-Transformer tabular approach [link](https://gist.github.com/fabriciocarraro/66b878a798630502d8684d7ce4349236).
+
+Quick start (uses a subset via `--sample_frac` for speed):
+
+```bash
+python train_tabular_transformer.py \
+  --data data/frames/kepler_summary_with_labels.parquet \
+  --epochs 5 --batch_size 512 --embed_dim 64 --heads 4 --layers 3 \
+  --lr 1e-3 --sample_frac 0.2 --out models
+```
+
+Artifacts:
+- `models/tabular_transformer.pt`
+- `models/feature_config.json` (feature lists, categorical mappings, label classes)
+
+Notes:
+- GPU is used if available (PyTorch). CPU also works.
+- Class imbalance is significant; consider tuning `--sample_frac`, model depth, and learning rate. You can also resample the training set upstream if needed.
+- CSV outputs are large; Parquet is the tracked artifact. Use Git LFS if you need to version CSVs.
+
