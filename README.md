@@ -157,6 +157,78 @@ The platform supports data from:
 - **TESS Mission**: Transiting Exoplanet Survey Satellite TOI
 - **Custom Data**: Upload your own CSV files
 
+## 🧰 CLI Data Pipeline (NASA Archive)
+
+These scripts fetch NASA Exoplanet Archive data and prepare training frames. Reference: https://exoplanetarchive.ipac.caltech.edu/docs/program_interfaces.html
+
+1) Create environment and install deps (repo root):
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2) Generate KOI labels and manifest:
+```bash
+python download_koi_labels.py
+python generate_manifest_koi.py  # writes data/labels/koi_manifest.csv
+```
+
+3) Bulk download Kepler time-series summaries (quarter 14 example):
+```bash
+python bulk_download_keplertimeseries.py \
+  --manifest data/labels/koi_manifest.csv \
+  --labels "CONFIRMED,FALSE POSITIVE,CANDIDATE" \
+  --quarters 14 \
+  --limit 1000 \
+  --workers 12 \
+  --out data/kepler
+```
+
+4) Parse to pandas-friendly frames (Parquet/CSV):
+```bash
+python parse_to_pandas.py \
+  --ipac-dir data/kepler \
+  --labels data/labels/koi_manifest.csv \
+  --out data/frames \
+  --workers 12 \
+  --batch-size 1500
+```
+
+Outputs: `data/frames/kepler_summary_with_labels.parquet` (tracked), CSV is ignored in git.
+
+## 🤖 FT-Transformer Training (Tabular)
+
+Supervised FT-Transformer-style trainer on the merged Parquet. Inspired by: https://gist.github.com/fabriciocarraro/66b878a798630502d8684d7ce4349236
+
+Quick start (subset):
+```bash
+python train_tabular_transformer.py \
+  --data data/frames/kepler_summary_with_labels.parquet \
+  --epochs 5 --batch_size 512 --embed_dim 64 --heads 4 --layers 3 \
+  --lr 1e-3 --sample_frac 0.2 --out models
+```
+
+Full run (larger model):
+```bash
+python train_tabular_transformer.py \
+  --data data/frames/kepler_summary_with_labels.parquet \
+  --epochs 30 --batch_size 128 --embed_dim 128 --heads 8 --layers 4 \
+  --dropout 0.1 --lr 3e-4 --sample_frac 1.0 --out models
+```
+
+Parameters:
+- `--data`: Parquet with features + `label`
+- `--out`: Output dir for `tabular_transformer.pt` and `feature_config.json`
+- `--epochs`: Training epochs
+- `--batch_size`: Batch size (tune for memory)
+- `--embed_dim`: Embedding size (divisible by `--heads`)
+- `--heads`: Attention heads per layer
+- `--layers`: Transformer encoder layers
+- `--dropout`: Dropout probability
+- `--lr`: AdamW learning rate
+- `--sample_frac`: Fraction of data to use (1.0 = all)
+
 ## 🛠️ Technologies
 
 ### Frontend
