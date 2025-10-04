@@ -68,7 +68,7 @@ def save_ipac_text(text: str, out_dir: Path, kepid: int, quarter: int) -> Path:
 def main():
 	parser = argparse.ArgumentParser(description="Bulk download Kepler time series summaries from KOI manifest")
 	parser.add_argument("--manifest", type=str, default="data/labels/koi_manifest.csv")
-	parser.add_argument("--labels", type=str, default="CONFIRMED,FALSE POSITIVE", help="Comma-separated labels to include")
+	parser.add_argument("--labels", type=str, default="CONFIRMED, CANDIDATE, FALSE POSITIVE", help="Comma-separated labels to include")
 	parser.add_argument("--quarters", type=str, default="14", help="Comma- or dash-separated list/range, e.g. 0-17 or 10,11,12")
 	parser.add_argument("--limit", type=int, default=100, help="Max number of kepids to download (0 for all)")
 	parser.add_argument("--workers", type=int, default=8, help="Number of parallel workers")
