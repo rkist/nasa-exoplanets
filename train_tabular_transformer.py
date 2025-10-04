@@ -87,9 +87,14 @@ def build_arrays(df: pd.DataFrame, num_cols: List[str], cat_cols: List[str]) -> 
 	# Fill numeric NaNs with column medians
 	X_num = df[num_cols].copy() if num_cols else pd.DataFrame(index=df.index)
 	for c in num_cols:
-		X_num[c] = X_num[c].astype(float).fillna(X_num[c].median())
-		# If the entire column was NaN, median is NaN; fill remaining with 0
-		X_num[c] = X_num[c].fillna(0.0)
+		col = X_num[c].astype(float)
+		# Avoid computing median on all-NaN columns (which triggers numpy warnings)
+		if col.notna().any():
+			med = col.median()
+			col = col.fillna(med)
+		else:
+			col = pd.Series(0.0, index=col.index)
+		X_num[c] = col
 
 	# Convert categoricals to category codes; cap unseen at -1 during inference
 	cat_maps: Dict[str, Dict[str, int]] = {}
