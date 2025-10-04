@@ -12,6 +12,7 @@ from sklearn.metrics import f1_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.sampler import WeightedRandomSampler
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -111,6 +112,15 @@ def build_arrays(df: pd.DataFrame, num_cols: List[str], cat_cols: List[str]) -> 
 	return X_num_arr, X_cat, {c: m for c, m in cat_maps.items()}
 
 
+def compute_class_weights(y: np.ndarray, n_classes: int) -> np.ndarray:
+    counts = np.bincount(y, minlength=n_classes)
+    # Avoid divide-by-zero; weight ~ inverse frequency
+    weights = len(y) / (counts + 1e-6)
+    # Normalize to mean 1.0 for numerical stability
+    weights = weights * (n_classes / weights.sum())
+    return weights
+
+
 def train(args):
 	data_path = Path(args.data)
 	df = pd.read_parquet(data_path)
@@ -130,11 +140,25 @@ def train(args):
 		df, _, y, _ = train_test_split(df, y, train_size=args.sample_frac, stratify=y, random_state=42)
 
 	X_num, X_cat, cat_maps = build_arrays(df.drop(columns=[label_col]), num_cols, cat_cols)
-	Xn_tr, Xn_te, Xc_tr, Xc_te, y_tr, y_te = train_test_split(X_num, X_cat, y, test_size=0.2, random_state=42, stratify=y)
+	Xn_tr, Xn_te, Xc_tr, Xc_te, y_tr, y_te = train_test_split(
+		X_num, X_cat, y, test_size=0.2, random_state=42, stratify=y
+	)
 
 	train_ds = ExoDataset(Xn_tr, Xc_tr, y_tr)
 	test_ds = ExoDataset(Xn_te, Xc_te, y_te)
-	train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+
+	# Class weights and/or oversampling
+	n_classes = len(label_encoder.classes_)
+	class_weights_np = compute_class_weights(y_tr, n_classes)
+	sampler = None
+	if args.oversample:
+		sample_weights = class_weights_np[y_tr]
+		sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
+
+	if sampler is not None:
+		train_loader = DataLoader(train_ds, batch_size=args.batch_size, sampler=sampler, shuffle=False)
+	else:
+		train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
 	test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False)
 
 	cat_dims = [max(2, int(max(2, len(m)))) for m in cat_maps.values()]
@@ -152,7 +176,11 @@ def train(args):
 	).to(DEVICE)
 
 	optimizer = optim.AdamW(model.parameters(), lr=args.lr)
-	criterion = nn.CrossEntropyLoss()
+	if args.class_weight:
+		cw = torch.tensor(class_weights_np, dtype=torch.float32, device=DEVICE)
+		criterion = nn.CrossEntropyLoss(weight=cw)
+	else:
+		criterion = nn.CrossEntropyLoss()
 
 	for epoch in range(args.epochs):
 		model.train()
@@ -165,6 +193,9 @@ def train(args):
 			logits = model(xb_num, xb_cat)
 			loss = criterion(logits, yb)
 			loss.backward()
+			# Optional gradient clipping
+			if args.clip_grad_norm > 0:
+				torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.clip_grad_norm)
 			optimizer.step()
 			loss_sum += loss.item()
 		model.eval()
@@ -213,5 +244,8 @@ if __name__ == "__main__":
 	parser.add_argument("--dropout", type=float, default=0.1)
 	parser.add_argument("--lr", type=float, default=1e-3)
 	parser.add_argument("--sample_frac", type=float, default=0.2)
+	parser.add_argument("--class_weight", action="store_true", help="Use class-weighted CrossEntropyLoss")
+	parser.add_argument("--oversample", action="store_true", help="Use WeightedRandomSampler on training set")
+	parser.add_argument("--clip_grad_norm", type=float, default=0.0, help="Max global grad norm for clipping (0 to disable)")
 	args = parser.parse_args()
 	train(args)
