@@ -113,3 +113,16 @@ Notes:
 - Class imbalance is significant; consider tuning `--sample_frac`, model depth, and learning rate. You can also resample the training set upstream if needed.
 - CSV outputs are large; Parquet is the tracked artifact. Use Git LFS if you need to version CSVs.
 
+
+### Training parameters
+
+- `--data`: Path to input Parquet with features and `label` (e.g., `data/frames/kepler_summary_with_labels.parquet`).
+- `--out`: Output folder for artifacts (`tabular_transformer.pt`, `feature_config.json`).
+- `--epochs`: Number of training epochs; increase until validation stops improving.
+- `--batch_size`: Samples per optimization step; raise for speed if memory allows, lower on OOM.
+- `--embed_dim`: Token embedding size; larger increases capacity. Must be divisible by `--heads`.
+- `--heads`: Attention heads per Transformer layer; typically 4–8. Ensure `embed_dim % heads == 0`.
+- `--layers`: Count of Transformer encoder blocks; more layers = higher capacity, slower training.
+- `--dropout`: Dropout probability in attention/FFN; 0.0–0.3 common. Increase if overfitting.
+- `--lr`: Learning rate for AdamW; start around 1e-3 (CPU/small) or 3e-4 (larger/GPU).
+- `--sample_frac`: Fraction of the dataset to use (1.0 = all data). Use smaller for quick sanity runs.
