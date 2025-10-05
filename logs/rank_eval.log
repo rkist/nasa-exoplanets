@@ -1,0 +1,45 @@
+2025-10-05 18:58:23,376 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 5, 'batch_size': 512, 'embed_dim': 64, 'heads': 4, 'layers': 3, 'dropout': 0.1, 'lr': 0.001, 'sample_frac': 1.0, 'class_weight': False, 'oversample': False, 'clip_grad_norm': 0.0, 'weight_decay': 0.0, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 2, 'early_stopping_patience': 5, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank_eval.log', 'log_interval': 100, 'verbose': False, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'load_model_dir': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'eval_only': True, 'score_only_candidates': True}
+2025-10-05 18:58:23,673 INFO Dataset: total=106978 train=70039 val=17510
+2025-10-05 18:58:23,673 INFO Train class counts: NEG(0)=47007, POS(1)=23032
+2025-10-05 18:58:23,673 INFO Val class counts:   NEG(0)=11752, POS(1)=5758
+2025-10-05 18:58:23,673 INFO Num features=53 Cat features=5
+2025-10-05 18:58:23,715 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 18:58:23,729 INFO Loaded pretrained weights from /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/tabular_transformer.pt
+2025-10-05 18:58:24,284 INFO Loss: BCEWithLogits
+2025-10-05 18:58:24,284 INFO Optimizer: AdamW lr=0.001 weight_decay=0.0
+2025-10-05 18:58:24,284 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=2
+2025-10-05 18:58:24,284 INFO Training: epochs=5 batch_size=512 steps_per_epoch=137
+2025-10-05 18:59:11,234 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 5, 'batch_size': 512, 'embed_dim': 64, 'heads': 4, 'layers': 3, 'dropout': 0.1, 'lr': 0.001, 'sample_frac': 1.0, 'class_weight': False, 'oversample': False, 'clip_grad_norm': 0.0, 'weight_decay': 0.0, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 2, 'early_stopping_patience': 5, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank_eval.log', 'log_interval': 100, 'verbose': False, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'load_model_dir': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'eval_only': True, 'score_only_candidates': True}
+2025-10-05 18:59:11,577 INFO Dataset: total=106978 train=70039 val=17510
+2025-10-05 18:59:11,577 INFO Train class counts: NEG(0)=47007, POS(1)=23032
+2025-10-05 18:59:11,577 INFO Val class counts:   NEG(0)=11752, POS(1)=5758
+2025-10-05 18:59:11,577 INFO Num features=53 Cat features=5
+2025-10-05 18:59:11,630 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 18:59:11,646 INFO Loaded pretrained weights from /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/tabular_transformer.pt
+2025-10-05 18:59:12,233 INFO Loss: BCEWithLogits
+2025-10-05 18:59:12,233 INFO Optimizer: AdamW lr=0.001 weight_decay=0.0
+2025-10-05 18:59:12,233 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=2
+2025-10-05 18:59:12,233 INFO Training: epochs=5 batch_size=512 steps_per_epoch=137
+2025-10-05 18:59:52,689 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 5, 'batch_size': 512, 'embed_dim': 64, 'heads': 4, 'layers': 3, 'dropout': 0.1, 'lr': 0.001, 'sample_frac': 1.0, 'class_weight': False, 'oversample': False, 'clip_grad_norm': 0.0, 'weight_decay': 0.0, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 2, 'early_stopping_patience': 5, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank_eval.log', 'log_interval': 100, 'verbose': False, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'load_model_dir': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'eval_only': True, 'score_only_candidates': True}
+2025-10-05 18:59:52,963 INFO Dataset: total=106978 train=70039 val=17510
+2025-10-05 18:59:52,964 INFO Train class counts: NEG(0)=47007, POS(1)=23032
+2025-10-05 18:59:52,964 INFO Val class counts:   NEG(0)=11752, POS(1)=5758
+2025-10-05 18:59:52,964 INFO Num features=53 Cat features=5
+2025-10-05 18:59:53,003 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 18:59:53,015 INFO Loaded pretrained weights from /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/tabular_transformer.pt
+2025-10-05 18:59:53,553 INFO Loss: BCEWithLogits
+2025-10-05 18:59:53,553 INFO Optimizer: AdamW lr=0.001 weight_decay=0.0
+2025-10-05 18:59:53,553 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=2
+2025-10-05 18:59:53,553 INFO Training: epochs=5 batch_size=512 steps_per_epoch=137
+2025-10-05 19:00:08,742 INFO Final validation - f1 0.9941 - auc 0.9998
+2025-10-05 19:00:08,750 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       1.00      1.00      1.00     11752
+     CONFIRMED       0.99      1.00      0.99      5758
+
+      accuracy                           1.00     17510
+     macro avg       0.99      1.00      1.00     17510
+  weighted avg       1.00      1.00      1.00     17510
+
+2025-10-05 19:01:39,371 INFO Wrote scores to /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv (rows=19429)

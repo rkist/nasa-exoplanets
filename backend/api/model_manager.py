@@ -143,7 +143,18 @@ class ModelManager:
             proba = model.predict_proba(X)
             if proba.shape[1] == 1:
                 return proba[:, 0]
-            return proba[:, -1]
+
+            classes = getattr(model, "classes_", None)
+            if classes is not None:
+                classes = np.array(classes)
+                if 0 in classes:
+                    index = int(np.where(classes == 0)[0][0])
+                else:
+                    index = 0
+            else:
+                index = 0
+
+            return proba[:, index]
         raise AttributeError(f"Model '{type(model).__name__}' does not support probability predictions.")
 
     def predict_single(self, X: np.ndarray) -> Dict[str, Dict[str, float]]:
@@ -216,11 +227,14 @@ class ModelManager:
             confusion = None
             if metadata.confusion_matrix:
                 matrix = metadata.confusion_matrix
-                confusion = {
-                    "tp": matrix[1][1] if len(matrix) > 1 else None,
-                    "fp": matrix[0][1] if len(matrix[0]) > 1 else None,
-                    "fn": matrix[1][0] if len(matrix) > 1 else None
-                }
+                if len(matrix) > 1:
+                    confusion = {
+                        "tp": matrix[0][0],  # true candidate
+                        "fp": matrix[1][0],  # false alarm
+                        "fn": matrix[0][1]   # missed candidate
+                    }
+                else:
+                    confusion = None
 
             payload = {
                 "name": name,

@@ -42,7 +42,7 @@ class BaseModel:
     # ----------------------------
     # Evaluate
     # ----------------------------
-    def evaluate(self, X_test, y_test, model_name="Model",  pos_label=1):
+    def evaluate(self, X_test, y_test, model_name="Model",  pos_label=0):
         y_pred = self.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
         rec = recall_score(y_test, y_pred, pos_label=pos_label)
@@ -53,7 +53,7 @@ class BaseModel:
         print("Confusion Matrix:\n", cm)
         return acc, rec, cm
 
-    def get_threshold(self, X_test, y_test, pos_label=1, metric="f1"):
+    def get_threshold(self, X_test, y_test, pos_label=0, metric="f1"):
         """
         Compute performance across multiple thresholds and return them sorted by best metric (default: F1).
         Returns a list of dicts, each containing:
@@ -62,13 +62,26 @@ class BaseModel:
         if not hasattr(self.model, "predict_proba"):
             raise AttributeError(f"{type(self.model).__name__} does not support predict_proba().")
 
-        y_prob = self.model.predict_proba(X_test)[:, 1]
+        proba = self.model.predict_proba(X_test)
+
+        classes = getattr(self.model, "classes_", None)
+        if classes is not None:
+            classes = np.array(classes)
+            if pos_label in classes:
+                index = int(np.where(classes == pos_label)[0][0])
+            else:
+                index = 0
+        else:
+            index = 0
+
+        y_prob = proba[:, index]
 
         _, _, thresholds = precision_recall_curve(y_test, y_prob, pos_label=pos_label)
         results = []
 
         for thr in thresholds:
-            y_pred = (y_prob >= thr).astype(int)
+            negative_label = 1 if pos_label == 0 else 0
+            y_pred = np.where(y_prob >= thr, pos_label, negative_label)
             acc = accuracy_score(y_test, y_pred)
             rec = recall_score(y_test, y_pred, pos_label=pos_label)
             pre = precision_score(y_test, y_pred, pos_label=pos_label)

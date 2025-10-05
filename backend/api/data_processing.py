@@ -60,7 +60,7 @@ class DataProcessor:
             return None
 
         df = pd.DataFrame(X, columns=self.feature_columns)
-        labels = np.where(y == 0, 'Likely False Positive', 'Candidate')
+        labels = np.where(y == 0, 'Candidate', 'Likely False Positive')
         df['label'] = labels
         return df
     

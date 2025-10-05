@@ -440,9 +440,9 @@ function renderModelSummary(models, bestModelName) {
                     </div>
                 </section>
                 <footer class="model-summary-confusion">
-                    <span class="confusion-pill confusion-pill-candidate" title="True Positives">TP ${tp}</span>
-                    <span class="confusion-pill confusion-pill-fp" title="False Positives">FP ${fp}</span>
-                    <span class="confusion-pill confusion-pill-fn" title="False Negatives">FN ${fn}</span>
+                    <span class="confusion-pill confusion-pill-candidate" title="True Candidates">TC ${tp}</span>
+                    <span class="confusion-pill confusion-pill-fp" title="False Alarms (Predicted Candidate, actually false)">FA ${fp}</span>
+                    <span class="confusion-pill confusion-pill-fn" title="Missed Candidates">MC ${fn}</span>
                 </footer>
             </article>
         `;
