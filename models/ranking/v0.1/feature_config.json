@@ -1,0 +1,93 @@
+{
+  "num_cols": [
+    "star_id",
+    "quarter",
+    "ra",
+    "dec",
+    "pm_ra",
+    "pm_dec",
+    "pm_total",
+    "gal_lat",
+    "gal_lon",
+    "start_time",
+    "end_time",
+    "umag",
+    "gmag",
+    "rmag",
+    "imag",
+    "zmag",
+    "gredmag",
+    "d51mag",
+    "jmag",
+    "hmag",
+    "kmag",
+    "kepmag",
+    "npts",
+    "gkcolor",
+    "grcolor",
+    "jkcolor",
+    "reddening",
+    "extinction",
+    "eff_temp",
+    "surface_gravity",
+    "metallicity",
+    "radius",
+    "object_status",
+    "data_release",
+    "exposure",
+    "livetime",
+    "cdpp3_0",
+    "cdpp6_0",
+    "cdpp12_0",
+    "crowdsap",
+    "flfrcsap",
+    "pdcvar",
+    "pdc_tot",
+    "pdc_totp",
+    "pdc_cor",
+    "pdc_corp",
+    "pdc_var",
+    "pdc_varp",
+    "pdc_noi",
+    "pdc_noip",
+    "pdc_ept",
+    "pdc_eptp",
+    "kepid"
+  ],
+  "cat_cols": [
+    "targettype",
+    "field",
+    "filter",
+    "file_version",
+    "pdcmethod"
+  ],
+  "cat_maps": {
+    "targettype": {
+      "long cadence": 0,
+      "short cadence": 1
+    },
+    "field": {
+      "The Kepler Field": 0
+    },
+    "filter": {
+      "Kepler band pass": 0
+    },
+    "file_version": {
+      "6.1": 0
+    },
+    "pdcmethod": {
+      "multiScaleMap": 0,
+      "quickMap": 1,
+      "regularMap": 2
+    }
+  },
+  "labels": [
+    "FALSE POSITIVE",
+    "CONFIRMED"
+  ],
+  "target": "prob_confirmed",
+  "embed_dim": 128,
+  "heads": 8,
+  "layers": 4,
+  "dropout": 0.1
+}
