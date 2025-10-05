@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -123,6 +124,7 @@ def compute_class_weights(y: np.ndarray, n_classes: int) -> np.ndarray:
 
 
 def train(args):
+	logger = logging.getLogger(__name__)
 	data_path = Path(args.data)
 	df = pd.read_parquet(data_path)
 	# Drop non-feature identifiers that are obviously strings with high cardinality if present
@@ -145,6 +147,14 @@ def train(args):
 		X_num, X_cat, y, test_size=0.2, random_state=42, stratify=y
 	)
 
+	# Log dataset shapes and class distribution
+	logger.info(f"Dataset: total={len(df)} train={len(y_tr)} val={len(y_te)}")
+	train_counts = np.bincount(y_tr, minlength=len(label_encoder.classes_))
+	te_counts = np.bincount(y_te, minlength=len(label_encoder.classes_))
+	logger.info("Train class counts: " + ", ".join([f"{cls}={int(c)}" for cls, c in zip(label_encoder.classes_, train_counts)]))
+	logger.info("Val class counts:   " + ", ".join([f"{cls}={int(c)}" for cls, c in zip(label_encoder.classes_, te_counts)]))
+	logger.info(f"Num features={len(num_cols)} Cat features={len(cat_cols)}")
+
 	# Standardize numeric features using train statistics
 	if Xn_tr.shape[1] > 0:
 		mean = Xn_tr.mean(axis=0, keepdims=True)
@@ -160,6 +170,7 @@ def train(args):
 	if args.oversample:
 		sample_weights = class_weights_np[y_tr]
 		sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
+		logger.info("Sampler: WeightedRandomSampler (oversampling)")
 
 	# Datasets and loaders
 	train_ds = ExoDataset(Xn_tr, Xc_tr, y_tr)
@@ -183,6 +194,7 @@ def train(args):
 		dropout=args.dropout,
 		n_classes=n_classes,
 	).to(DEVICE)
+	logger.info(f"Model: FT-Transformer embed_dim={args.embed_dim} heads={args.heads} layers={args.layers} dropout={args.dropout}")
 
 	optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 	# Scheduler (ReduceLROnPlateau on val F1)
@@ -196,15 +208,22 @@ def train(args):
 	if use_class_weight:
 		cw = torch.tensor(class_weights_np, dtype=torch.float32, device=DEVICE)
 		criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=args.label_smoothing)
+		logger.info("Loss: CrossEntropy with class weights + label_smoothing={:.3f}".format(args.label_smoothing))
 	else:
 		criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
+		logger.info("Loss: CrossEntropy label_smoothing={:.3f}".format(args.label_smoothing))
 
 	best_f1 = -1.0
 	best_state = None
 	no_improve_epochs = 0
+	logger.info(f"Optimizer: AdamW lr={args.lr} weight_decay={args.weight_decay}")
+	if scheduler is not None:
+		logger.info(f"Scheduler: ReduceLROnPlateau factor={args.lr_factor} patience={args.lr_patience}")
+	logger.info(f"Training: epochs={args.epochs} batch_size={args.batch_size} steps_per_epoch={len(train_loader)}")
 	for epoch in range(args.epochs):
 		model.train()
 		loss_sum = 0.0
+		step = 0
 		for xb_num, xb_cat, yb in train_loader:
 			xb_num = xb_num.to(DEVICE)
 			xb_cat = xb_cat.to(DEVICE)
@@ -218,6 +237,10 @@ def train(args):
 				torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.clip_grad_norm)
 			optimizer.step()
 			loss_sum += loss.item()
+			step += 1
+			if args.log_interval > 0 and (step % args.log_interval == 0):
+				current_lr = optimizer.param_groups[0]["lr"]
+				logger.info(f"Epoch {epoch+1} Step {step}/{len(train_loader)} - lr {current_lr:.6f} - loss {loss_sum/step:.4f}")
 		model.eval()
 		y_true, y_pred = [], []
 		with torch.no_grad():
@@ -229,7 +252,8 @@ def train(args):
 				y_pred.extend(pred)
 				y_true.extend(yb.numpy())
 		f1 = f1_score(y_true, y_pred, average="weighted", zero_division=0)
-		print(f"Epoch {epoch+1}/{args.epochs} - loss {loss_sum/max(1,len(train_loader)):.4f} - val f1 {f1:.4f}")
+		current_lr = optimizer.param_groups[0]["lr"]
+		logger.info(f"Epoch {epoch+1}/{args.epochs} - lr {current_lr:.6f} - loss {loss_sum/max(1,len(train_loader)):.4f} - val f1 {f1:.4f}")
 
 		# LR scheduler step
 		if scheduler is not None:
@@ -243,7 +267,7 @@ def train(args):
 		else:
 			no_improve_epochs += 1
 			if args.early_stopping_patience > 0 and no_improve_epochs >= args.early_stopping_patience:
-				print("Early stopping: no improvement on val F1")
+				logger.warning("Early stopping: no improvement on val F1")
 				break
 
 	# Load best state (if any) before final save/eval
@@ -267,8 +291,7 @@ def train(args):
 	with (out_dir / "feature_config.json").open("w", encoding="utf-8") as f:
 		json.dump(artifacts, f, indent=2)
 
-	print("Classification report:")
-	print(classification_report(y_true, y_pred, target_names=label_encoder.classes_, zero_division=0))
+	logger.info("Classification report:\n" + classification_report(y_true, y_pred, target_names=label_encoder.classes_, zero_division=0))
 
 
 if __name__ == "__main__":
@@ -293,7 +316,29 @@ if __name__ == "__main__":
 	parser.add_argument("--lr_patience", type=int, default=2, help="Epochs to wait before LR reduction (plateau)")
 	parser.add_argument("--early_stopping_patience", type=int, default=5, help="Stop if no val F1 improvement for N epochs (0 disables)")
 	parser.add_argument("--seed", type=int, default=42, help="Random seed")
+	parser.add_argument("--log_file", type=str, default="", help="Optional log file path; creates directories if needed")
+	parser.add_argument("--log_interval", type=int, default=100, help="Steps between batch logs (0 to disable)")
+	parser.add_argument("--verbose", action="store_true", help="Enable DEBUG level logging")
 	args = parser.parse_args()
+
+	# Configure logging
+	log_level = logging.DEBUG if args.verbose else logging.INFO
+	root_logger = logging.getLogger()
+	root_logger.handlers.clear()
+	root_logger.setLevel(log_level)
+	console = logging.StreamHandler()
+	console.setLevel(log_level)
+	console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+	root_logger.addHandler(console)
+	if args.log_file:
+		lf = Path(args.log_file)
+		lf.parent.mkdir(parents=True, exist_ok=True)
+		fh = logging.FileHandler(lf)
+		fh.setLevel(log_level)
+		fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+		root_logger.addHandler(fh)
+
+	root_logger.info("Starting trainer with args: %s", vars(args))
 
 	# Set seeds for reproducibility
 	import random
