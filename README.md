@@ -265,10 +265,3 @@ For questions or support, please open an issue on GitHub.
 ---
 
 **Made with ❤️ for space exploration and exoplanet discovery**
-
-
-
-python train_tabular_transformer.py \
-  --data data/frames/kepler_summary_with_labels.parquet \
-  --epochs 30 --batch_size 512 --embed_dim 128 --heads 8 --layers 4 \
-  --class_weight --oversample --clip_grad_norm 1.0 --dropout 0.1 --lr 2e-4 --sample_frac 1.0 --out models
