@@ -2,14 +2,103 @@
 
 An advanced machine learning platform for detecting and classifying exoplanets from NASA mission data (Kepler, K2, and TESS).
 
-## 🌟 Features
+## Prediction
 
-- **Multiple ML Algorithms**: XGBoost, Random Forest, Neural Networks, and SVM
-- **Real-time Classification**: Classify individual exoplanet candidates
-- **Batch Processing**: Upload CSV files for bulk classification
-- **Custom Training**: Train models with custom hyperparameters
-- **Performance Metrics**: View detailed model statistics and accuracy
-- **Beautiful UI**: Modern, space-themed interface
+Researchers, scientists, and the general public can leverage our frontend page that connects to our Machine Learning models to make predictions for new data.
+
+### Feature Selection for Exoplanet Detection
+
+The selection of features for our exoplanet detection model is based on the physical principles of the **transit method** and the need to distinguish genuine planetary transits from false positives. Our feature set combines both **planetary characteristics** and **stellar properties** to achieve robust classification.
+
+#### 🌍 Planetary Features
+
+**Orbital Period** (days)
+- **Why**: The time it takes for a planet to complete one orbit around its star
+- **Importance**: Different orbital periods indicate different types of planets (hot Jupiters vs. Earth-like planets)
+- **Detection**: Determines the frequency of transit events
+- **Range**: From hours (ultra-hot Jupiters) to years (outer planets)
+
+**Transit Duration** (hours)
+- **Why**: The length of time a planet blocks its star's light during transit
+- **Importance**: Related to planetary size, orbital velocity, and stellar radius
+- **Detection**: Helps validate that the transit is caused by a planetary body
+- **Physics**: Longer durations may indicate larger planets or slower orbital velocities
+
+**Planetary Radius** (Earth radii)
+- **Why**: The size of the planet relative to Earth
+- **Importance**: Directly affects the transit depth (amount of light blocked)
+- **Detection**: Larger planets create deeper, more detectable transits
+- **Classification**: Helps categorize planet types (super-Earth, Neptune-like, Jupiter-like)
+
+**Equilibrium Temperature** (Kelvin)
+- **Why**: The theoretical temperature of the planet based on stellar radiation
+- **Importance**: Indicates potential habitability and atmospheric composition
+- **Detection**: Correlates with orbital distance and stellar properties
+- **Context**: Hot planets close to their stars vs. cold planets far away
+
+#### ⭐ Stellar Features
+
+**Stellar Radius** (Solar radii)
+- **Why**: The size of the host star relative to our Sun
+- **Importance**: Critical for calculating planetary radius from transit depth
+- **Physics**: Transit depth = (R_planet / R_star)²
+- **Validation**: Helps identify false positives from stellar variability
+
+**Stellar Mass** (Solar masses)
+- **Why**: The mass of the host star relative to our Sun
+- **Importance**: Affects orbital dynamics and system stability
+- **Detection**: Massive stars produce different signals than small stars
+- **Context**: Planet formation and evolution depend on stellar mass
+
+**Metallicity** [Fe/H]
+- **Why**: The abundance of elements heavier than hydrogen and helium in the star
+- **Importance**: **HIGHEST FEATURE IMPORTANCE** (~13.5% in Random Forest model)
+- **Science**: Metal-rich stars are more likely to host planets
+- **Detection**: Strong indicator for distinguishing real planets from stellar mimics
+- **Research**: Supported by the core accretion theory of planet formation
+
+**Effective Temperature** (Kelvin)
+- **Why**: The surface temperature of the host star
+- **Importance**: Second-highest feature importance (~13.3%)
+- **Detection**: Affects the contrast and detectability of transits
+- **Classification**: Different spectral types (hot vs. cool stars) produce different signals
+- **Physics**: Determines the habitable zone location
+
+**Color Indices** (gkcolor, grcolor, jkcolor)
+- **Why**: Differences in stellar brightness measured at different wavelengths
+- **Importance**: Combined importance of ~32.5% across all color features
+- **Detection**: Helps identify the stellar spectral type
+- **False Positives**: Distinguishes planets from eclipsing binaries and blended stars
+- **Multi-wavelength**: Different colors reveal different physical properties
+
+**Extinction** (magnitudes)
+- **Why**: Amount of light absorbed by interstellar dust
+- **Importance**: ~11% feature importance
+- **Detection**: High extinction can create artificial signals
+- **Correction**: Essential for accurate photometric measurements
+- **Context**: Helps identify observational biases
+
+**Surface Gravity** log(g)
+- **Why**: Gravitational acceleration at the stellar surface
+- **Importance**: Related to stellar evolution and system geometry
+- **Physics**: log(g) = log(M) - 2log(R) + constant
+- **Validation**: Helps confirm stellar parameters are consistent with observations
+
+**Reddening** E(B-V)
+- **Why**: Measure of color change due to interstellar dust
+- **Importance**: Related to extinction, affects apparent stellar colors
+- **Correction**: Necessary for accurate stellar characterization
+- **Detection**: Helps identify systematic errors in measurements
+
+The model learns the physical relationships between features:
+- Planetary radius must be consistent with transit depth and stellar radius
+- Orbital period must be consistent with equilibrium temperature
+- Stellar colors must be consistent with effective temperature and metallicity
+
+Our Random Forest model reveals that **stellar characteristics dominate**:
+- Top 2 features are stellar (metallicity and effective temperature)
+- Color indices account for ~32% of total importance
+- This validates that context matters as much as the transit signal itself
 
 ## 📁 Project Structure
 
