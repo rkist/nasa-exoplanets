@@ -318,7 +318,12 @@ def train(args):
 	# Scoring: compute probability for all rows (including CANDIDATE) and write CSV
 	model.eval()
 	with torch.no_grad():
-		logits_all = model(torch.tensor(X_num.astype(np.float32)).to(DEVICE), torch.tensor(X_cat.astype(np.int64)).to(DEVICE)).squeeze(1)
+		# IMPORTANT: apply the same standardization used for train/val to all rows
+		if num_features_len > 0:
+			X_num_all = (X_num - mean) / std
+		else:
+			X_num_all = X_num
+		logits_all = model(torch.tensor(X_num_all.astype(np.float32)).to(DEVICE), torch.tensor(X_cat.astype(np.int64)).to(DEVICE)).squeeze(1)
 		probs_all = torch.sigmoid(logits_all).cpu().numpy()
 
 	scores_df = pd.DataFrame({
