@@ -1,10 +1,18 @@
 # main.py
 import argparse
-import pandas as pd
 from pathlib import Path
+from typing import Optional, Sequence, Union
+
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from datetime import datetime
-from models import RandomForestModel, XGBoostModel, LightGBMModel, CatBoostModel
+
+from ml.models import (
+    RandomForestModel,
+    XGBoostModel,
+    LightGBMModel,
+    CatBoostModel,
+)
 
 
 # ====================================================
@@ -66,7 +74,123 @@ def train_and_save(model_class, X_train, X_test, y_train, y_test, out_dir, model
 
     print(f"Report saved → {info_path}")
 
-    return model_name, acc, rec
+    return {
+        "name": model_name,
+        "accuracy": float(acc),
+        "recall": float(rec),
+        "best_threshold": float(best_thr["threshold"]),
+        "best_threshold_metrics": best_thr,
+        "model_path": str(model_path),
+        "scaler_path": str(scaler_path) if scaler_path else None,
+        "report_path": str(info_path)
+    }
+
+
+def _load_dataframe(data: Union[str, Path, pd.DataFrame]) -> pd.DataFrame:
+    """Load a dataframe from a path or return a copy if already provided."""
+    if isinstance(data, pd.DataFrame):
+        return data.copy()
+
+    if data is None:
+        raise ValueError("No dataset provided for training.")
+
+    data_path = Path(data)
+    if not data_path.exists():
+        raise FileNotFoundError(f"Dataset not found at {data_path}")
+
+    print(f"📂 Loading dataset from {data_path}")
+    if data_path.suffix == ".parquet":
+        df = pd.read_parquet(data_path)
+    elif data_path.suffix in {".jsonl", ".json"}:
+        df = pd.read_json(data_path, lines=True)
+    else:
+        df = pd.read_csv(data_path)
+
+    print(f"✅ Dataset loaded: {df.shape[0]} rows, {df.shape[1]} columns")
+    return df
+
+
+def _prepare_xy(
+    df: pd.DataFrame,
+    feature_columns: Optional[Sequence[str]],
+    target_column: str,
+    allowed_classes: Optional[Sequence[str]]
+) -> tuple[pd.DataFrame, pd.Series]:
+    if target_column not in df.columns:
+        raise KeyError(f"Target column '{target_column}' not found in dataset.")
+
+    y = df[target_column]
+
+    if feature_columns is None:
+        feature_columns = [col for col in df.columns if col != target_column]
+
+    X = df[feature_columns]
+
+    if allowed_classes:
+        allowed = [cls for cls in allowed_classes if cls is not None]
+        invalid = [cls for cls in allowed if cls not in set(y.unique())]
+        if invalid:
+            raise ValueError(
+                f"Invalid class values provided: {invalid}. Available classes: {list(y.unique())}"
+            )
+        mask = y.isin(allowed)
+        X = X.loc[mask]
+        y = y.loc[mask]
+        print(f"⚠️ Using subset of classes: {allowed}")
+
+    return X, y
+
+
+def run_training(
+    data: Union[str, Path, pd.DataFrame],
+    feature_columns: Optional[Sequence[str]] = None,
+    target: str = "label",
+    out_dir: Union[str, Path] = "models_out",
+    scale: bool = False,
+    test_size: float = 0.2,
+    classes: Optional[Sequence[str]] = None,
+    pos_label: Optional[str] = None
+):
+    """Train all supported models and persist artifacts."""
+
+    df = _load_dataframe(data)
+    X, y = _prepare_xy(df, feature_columns, target, classes)
+
+    if pos_label is None:
+        raise ValueError("pos_label must be provided to define the positive class.")
+
+    if pos_label not in set(y.unique()):
+        raise ValueError(
+            f"pos_label '{pos_label}' not found in target column values: {list(y.unique())}"
+        )
+
+    print("\n📊 Class distribution after filtering:")
+    print(y.value_counts(normalize=True).round(3))
+
+    y_binary = y.apply(lambda value: 1 if value == pos_label else 0)
+    print(f"\n✅ Using '{pos_label}' as positive class (1), all others as 0")
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y_binary, test_size=test_size, random_state=42, stratify=y_binary
+    )
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    results = []
+    models = {
+        "RandomForest": RandomForestModel,
+        "XGBoost": XGBoostModel,
+        "LightGBM": LightGBMModel,
+        "CatBoost": CatBoostModel
+    }
+
+    for name, cls in models.items():
+        results.append(
+            train_and_save(cls, X_train, X_test, y_train, y_test, out_dir, name, scale)
+        )
+
+    return results
 
 # ====================================================
 # 🔹 Main Function
@@ -97,92 +221,31 @@ def main():
 
     args = parser.parse_args()
 
-    # ------------------------------
-    # Load dataset
-    # ------------------------------
-    print(f"📂 Loading dataset from {args.data}")
-    if args.data.endswith(".parquet"):
-        df = pd.read_parquet(args.data)
-    elif args.data.endswith(".jsonl"):
-        df = pd.read_json(args.data, lines=True)
-    elif args.data.endswith(".json"):
-        df = pd.read_json(args.data, lines=True)
-    else:
-        df = pd.read_csv(args.data)
-    print(f"✅ Dataset loaded: {df.shape[0]} rows, {df.shape[1]} columns")
+    classes = [cls.strip() for cls in args.classes.split(",")] if args.classes else None
 
-    # ------------------------------
-    # Prepare features and target
-    # ------------------------------
-    y = df[args.target]
-    if args.feature is None:
-        X = df.drop(columns=[args.target])
-    else:
-        X = df[args.feature]
-
-    unique_vals = y.unique()
-    
-    # handle multi-class datasets
-    if len(unique_vals) > 2:
-        if args.classes is None:
-            raise ValueError(
-                f"Target '{args.target}' has {len(unique_vals)} unique values: {list(unique_vals)}.\n"
-                f"Please specify which classes to use via --classes "
-                f"(e.g. --classes Confirmed,FalsePositive)"
-            )
-        else:
-            allowed = [c.strip() for c in args.classes.split(",")]
-            invalid = [c for c in allowed if c not in unique_vals]
-            if invalid:
-                raise ValueError(f"Invalid class values in --classes: {invalid}. Available: {list(unique_vals)}")
-
-            y = y[y.isin(allowed)]
-            X = X.loc[y.index]
-            print(f"⚠️ Using subset of classes: {allowed}")
-
-    # ✅ Print class distribution
-    print("\n📊 Class distribution after filtering:")
-    print(y.value_counts(normalize=True).round(3))
-
-    if args.pos_label not in y.unique():
-        raise ValueError(f"--pos_label '{args.pos_label}' not found in target column values: {list(y.unique())}")
-
-    # Force consistent numeric encoding: positive → 1, negative → 0
-    y = y.apply(lambda val: 1 if val == args.pos_label else 0)
-    print(f"\n✅ Using '{args.pos_label}' as positive class (1), all others as 0")
-
-
-    # ------------------------------
-    # Split into train/test
-    # ------------------------------
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=args.test_size, random_state=42, stratify=y
+    results = run_training(
+        data=args.data,
+        feature_columns=args.feature,
+        target=args.target,
+        out_dir=args.out,
+        scale=args.scale,
+        test_size=args.test_size,
+        classes=classes,
+        pos_label=args.pos_label
     )
-    
-    Path(args.out).mkdir(parents=True, exist_ok=True)
 
-    # ------------------------------
-    # Train models
-    # ------------------------------
-    results = []
-    models = {
-        "RandomForest": RandomForestModel,
-        "XGBoost": XGBoostModel,
-        "LightGBM": LightGBMModel,
-        "CatBoost": CatBoostModel
-    }
+    summary = (
+        pd.DataFrame(results)[["name", "accuracy", "recall", "best_threshold"]]
+        .sort_values(by="accuracy", ascending=False)
+    )
 
-    for name, cls in models.items():
-        results.append(
-            train_and_save(cls, X_train, X_test, y_train, y_test, args.out, name, args.scale)
-        )
-
-    # ------------------------------
-    # Summary
-    # ------------------------------
-    df_results = pd.DataFrame(results, columns=["Model", "Accuracy", "Recall"])
     print("\n🏁 Final Model Results:")
-    print(df_results.sort_values(by="Accuracy", ascending=False))
+    print(summary.rename(columns={
+        "name": "Model",
+        "accuracy": "Accuracy",
+        "recall": "Recall",
+        "best_threshold": "Best Threshold"
+    }))
 
 
 if __name__ == "__main__":

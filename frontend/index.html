@@ -17,7 +17,6 @@
 
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="switchTab(event, 'classify')">Classify Data</button>
-            <button class="tab-btn" onclick="switchTab(event, 'train')">Train Model</button>
             <button class="tab-btn" onclick="switchTab(event, 'stats')">Model Statistics</button>
             <button class="tab-btn" onclick="switchTab(event, 'about')">About</button>
         </div>
@@ -26,7 +25,7 @@
         <div id="classify" class="tab-content active">
             <div class="card">
                 <h2>Classify Exoplanet Data</h2>
-                <p style="color: #8b95a5; margin-bottom: 20px;">Enter planetary data to classify whether it's a confirmed exoplanet, candidate, or false positive.</p>
+                <p style="color: #8b95a5; margin-bottom: 20px;">Enter planetary data to classify whether it's likely an exoplanet candidate or false positive.</p>
                 
                 <div class="grid-2">
                     <div class="form-group">
@@ -94,235 +93,6 @@
             </div>
         </div>
 
-        <!-- Train Model Tab -->
-        <div id="train" class="tab-content">
-            <div class="card">
-                <h2>Train Model on New Data</h2>
-                <p style="color: #8b95a5; margin-bottom: 20px;">Configure and train your model with custom datasets and hyperparameters.</p>
-
-                <div class="info-section">
-                    <strong>📊 Supported Datasets:</strong><br>
-                    <span class="dataset-badge">Kepler KOI</span>
-                    <span class="dataset-badge">K2 EPIC</span>
-                    <span class="dataset-badge">TESS TOI</span>
-                    <span class="dataset-badge">Custom CSV</span>
-                </div>
-
-                <h3>Dataset Configuration</h3>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Select Training Dataset</label>
-                        <select id="training-dataset">
-                            <option value="kepler">Kepler Confirmed Exoplanets</option>
-                            <option value="k2">K2 Mission Data</option>
-                            <option value="tess">TESS Candidates</option>
-                            <option value="combined">Combined (Kepler + K2 + TESS)</option>
-                            <option value="custom">Upload Custom Dataset</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Training/Validation Split (%)</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="train-split" min="60" max="90" value="80" oninput="updateSlider('train-split')">
-                            <span class="slider-value" id="train-split-value">80%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <h3>Algorithm Selection</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
-                    <div class="algo-card selected" onclick="selectAlgorithm(this, 'xgboost')">
-                        <strong style="color: #667eea;">🚀 XGBoost</strong>
-                        <p style="font-size: 0.9em; color: #8b95a5; margin-top: 5px;">Gradient boosting with high accuracy</p>
-                    </div>
-                    <div class="algo-card" onclick="selectAlgorithm(this, 'random-forest')">
-                        <strong style="color: #667eea;">🌲 Random Forest</strong>
-                        <p style="font-size: 0.9em; color: #8b95a5; margin-top: 5px;">Ensemble learning with decision trees</p>
-                    </div>
-                    <div class="algo-card" onclick="selectAlgorithm(this, 'neural-net')">
-                        <strong style="color: #667eea;">🧠 Neural Network</strong>
-                        <p style="font-size: 0.9em; color: #8b95a5; margin-top: 5px;">Deep learning with multiple layers</p>
-                    </div>
-                    <div class="algo-card" onclick="selectAlgorithm(this, 'svm')">
-                        <strong style="color: #667eea;">📐 SVM</strong>
-                        <p style="font-size: 0.9em; color: #8b95a5; margin-top: 5px;">Support Vector Machine classifier</p>
-                    </div>
-                </div>
-
-                <div id="hyperparams-xgboost" class="hyperparams-section">
-                    <h3>XGBoost Hyperparameters</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Learning Rate (eta)</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="xgb-learning-rate" min="0.01" max="0.3" step="0.01" value="0.1" oninput="updateSlider('xgb-learning-rate')">
-                                <span class="slider-value" id="xgb-learning-rate-value">0.1</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Max Depth</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="xgb-max-depth" min="3" max="15" step="1" value="6" oninput="updateSlider('xgb-max-depth')">
-                                <span class="slider-value" id="xgb-max-depth-value">6</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>N Estimators</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="xgb-n-estimators" min="50" max="500" step="50" value="100" oninput="updateSlider('xgb-n-estimators')">
-                                <span class="slider-value" id="xgb-n-estimators-value">100</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Subsample Ratio</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="xgb-subsample" min="0.5" max="1.0" step="0.1" value="0.8" oninput="updateSlider('xgb-subsample')">
-                                <span class="slider-value" id="xgb-subsample-value">0.8</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="hyperparams-random-forest" class="hyperparams-section" style="display: none;">
-                    <h3>Random Forest Hyperparameters</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>N Estimators (Trees)</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="rf-n-estimators" min="50" max="500" step="50" value="100" oninput="updateSlider('rf-n-estimators')">
-                                <span class="slider-value" id="rf-n-estimators-value">100</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Max Depth</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="rf-max-depth" min="5" max="50" step="5" value="20" oninput="updateSlider('rf-max-depth')">
-                                <span class="slider-value" id="rf-max-depth-value">20</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Min Samples Split</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="rf-min-samples" min="2" max="20" step="1" value="2" oninput="updateSlider('rf-min-samples')">
-                                <span class="slider-value" id="rf-min-samples-value">2</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Max Features</label>
-                            <select id="rf-max-features">
-                                <option value="sqrt">sqrt</option>
-                                <option value="log2">log2</option>
-                                <option value="none">None</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="hyperparams-neural-net" class="hyperparams-section" style="display: none;">
-                    <h3>Neural Network Hyperparameters</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Learning Rate</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="nn-learning-rate" min="0.0001" max="0.01" step="0.0001" value="0.001" oninput="updateSlider('nn-learning-rate')">
-                                <span class="slider-value" id="nn-learning-rate-value">0.001</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Batch Size</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="nn-batch-size" min="16" max="256" step="16" value="32" oninput="updateSlider('nn-batch-size')">
-                                <span class="slider-value" id="nn-batch-size-value">32</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Hidden Layers</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="nn-hidden-layers" min="2" max="10" step="1" value="5" oninput="updateSlider('nn-hidden-layers')">
-                                <span class="slider-value" id="nn-hidden-layers-value">5</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Dropout Rate</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="nn-dropout" min="0" max="0.5" step="0.05" value="0.2" oninput="updateSlider('nn-dropout')">
-                                <span class="slider-value" id="nn-dropout-value">0.2</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Optimizer</label>
-                            <select id="nn-optimizer">
-                                <option value="adam">Adam</option>
-                                <option value="sgd">SGD</option>
-                                <option value="rmsprop">RMSprop</option>
-                                <option value="adamw">AdamW</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Activation Function</label>
-                            <select id="nn-activation">
-                                <option value="relu">ReLU</option>
-                                <option value="leaky_relu">Leaky ReLU</option>
-                                <option value="tanh">Tanh</option>
-                                <option value="sigmoid">Sigmoid</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="hyperparams-svm" class="hyperparams-section" style="display: none;">
-                    <h3>SVM Hyperparameters</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>C (Regularization)</label>
-                            <div class="slider-container">
-                                <input type="range" class="slider" id="svm-c" min="0.1" max="10" step="0.1" value="1.0" oninput="updateSlider('svm-c')">
-                                <span class="slider-value" id="svm-c-value">1.0</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Kernel</label>
-                            <select id="svm-kernel">
-                                <option value="rbf">RBF</option>
-                                <option value="linear">Linear</option>
-                                <option value="poly">Polynomial</option>
-                                <option value="sigmoid">Sigmoid</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Gamma</label>
-                            <select id="svm-gamma">
-                                <option value="scale">Scale</option>
-                                <option value="auto">Auto</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <h3>Training Configuration</h3>
-                <div class="form-group">
-                    <label>Number of Epochs / Iterations</label>
-                    <input type="number" id="epochs" value="100" min="10" max="1000">
-                </div>
-
-                <button class="btn" onclick="trainModel()">Start Training</button>
-                <button class="btn btn-secondary" onclick="stopTraining()" style="margin-left: 10px;">Stop Training</button>
-
-                <div id="training-progress" style="display: none; margin-top: 20px;">
-                    <h3 style="color: #667eea; margin-bottom: 10px;">Training Progress</h3>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="train-progress-bar"></div>
-                    </div>
-                    <p style="margin-top: 10px; color: #8b95a5;">Iteration <span id="current-epoch">0</span> of <span id="total-epochs">100</span></p>
-                    <div class="result-box" style="margin-top: 15px;">
-                        <strong>Current Loss:</strong> <span id="current-loss">--</span><br>
-                        <strong>Validation Accuracy:</strong> <span id="val-accuracy">--</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Stats Tab -->
         <div id="stats" class="tab-content">
             <div class="card">
@@ -330,38 +100,64 @@
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-value" id="accuracy-stat">--</div>
                         <div class="stat-label">Overall Accuracy</div>
+                        <div class="stat-value" id="accuracy-stat">--</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="precision-stat">--</div>
                         <div class="stat-label">Precision</div>
+                        <div class="stat-value" id="precision-stat">--</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="recall-stat">--</div>
                         <div class="stat-label">Recall</div>
+                        <div class="stat-value" id="recall-stat">--</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="f1-stat">--</div>
                         <div class="stat-label">F1 Score</div>
+                        <div class="stat-value" id="f1-stat">--</div>
                     </div>
+                </div>
+
+                <div class="model-summary-section">
+                    <div class="model-summary-header-row">
+                        <h3>Ensemble Snapshot</h3>
+                        <div class="model-summary-legend">
+                            <span class="legend-pill legend-pill-candidate">True Candidates</span>
+                            <span class="legend-pill legend-pill-fp">False Alarms</span>
+                            <span class="legend-pill legend-pill-fn">Missed Candidates</span>
+                        </div>
+                    </div>
+                    <div id="model-summary" class="model-summary-grid"></div>
                 </div>
 
                 <div class="info-section" style="margin-top: 30px;">
                     <h3 style="color: #667eea; margin-bottom: 15px;">Model Information</h3>
-                    <p><strong>Current Algorithm:</strong> <span id="current-algo">Not trained yet</span></p>
-                    <p><strong>Training Dataset:</strong> <span id="training-data">--</span></p>
-                    <p><strong>Total Samples:</strong> <span id="total-samples">--</span></p>
+                    <p><strong>Active Model:</strong> <span id="current-model">Not trained yet</span></p>
+                    <p><strong>Decision Threshold:</strong> <span id="current-threshold">--</span></p>
                     <p><strong>Last Updated:</strong> <span id="last-updated">--</span></p>
-                    <p><strong>Training Time:</strong> <span id="training-time">--</span></p>
                 </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Select Model</label>
+                    <select id="threshold-model" onchange="syncThresholdFromSelect()" style="width: 100%;"></select>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Adjust Candidate Threshold</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="threshold-slider" min="10" max="90" value="50" oninput="updateThresholdPreview()">
+                        <span class="slider-value" id="threshold-slider-value">0.50</span>
+                    </div>
+                    <button class="btn" style="margin-top: 10px;" onclick="applyThreshold()">Update Threshold</button>
+                </div>
+
+                <div id="model-metrics" style="margin-top: 20px;"></div>
 
                 <div class="card" style="background: rgba(30, 35, 50, 0.8); margin-top: 20px;">
                     <h3 style="color: #667eea;">Confusion Matrix</h3>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px;">
-                        <div class="stat-card"><strong>True Positive</strong><br><span style="font-size: 1.5em; color: #10b981;" id="tp-stat">--</span></div>
-                        <div class="stat-card"><strong>False Positive</strong><br><span style="font-size: 1.5em; color: #ef4444;" id="fp-stat">--</span></div>
-                        <div class="stat-card"><strong>False Negative</strong><br><span style="font-size: 1.5em; color: #ef4444;" id="fn-stat">--</span></div>
+                        <div class="stat-card"><strong>True Candidate</strong><br><span style="font-size: 1.5em; color: #10b981;" id="tp-stat">--</span></div>
+                        <div class="stat-card"><strong>False Alarm</strong><br><span style="font-size: 1.5em; color: #ef4444;" id="fp-stat">--</span></div>
+                        <div class="stat-card"><strong>Missed Candidate</strong><br><span style="font-size: 1.5em; color: #ef4444;" id="fn-stat">--</span></div>
                     </div>
                 </div>
 
@@ -379,7 +175,7 @@
 
                 <h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">Detection Method</h3>
                 <p style="line-height: 1.8; color: #b0b8c5;">
-                    The platform uses the transit method, detecting the slight dimming of starlight when a planet passes between a star and our satellites. By analyzing various parameters such as orbital period, transit duration, and planetary radius, the AI model can distinguish between confirmed exoplanets, candidates, and false positives.
+                    The platform uses the transit method, detecting the slight dimming of starlight when a planet passes between a star and our satellites. By analysing the nine most informative stellar and planetary descriptors, the AI model separates promising candidates from signals that are likely false positives.
                 </p>
 
                 <h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">Data Sources</h3>

@@ -51,6 +51,18 @@ class DataProcessor:
         df = pd.DataFrame(records)
         processed = self.preprocess_batch(df)
         return processed.values
+
+    def build_training_dataframe(self, dataset_name='combined'):
+        """Return a dataframe with features and binary labels for training."""
+        X, y = self.load_dataset(dataset_name)
+
+        if X is None or y is None:
+            return None
+
+        df = pd.DataFrame(X, columns=self.feature_columns)
+        labels = np.where(y == 0, 'Likely False Positive', 'Candidate')
+        df['label'] = labels
+        return df
     
     def load_dataset(self, dataset_name):
         """Load and preprocess dataset"""

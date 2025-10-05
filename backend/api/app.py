@@ -1,74 +1,96 @@
-from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
+from __future__ import annotations
+
 import json
-import pandas as pd
-import numpy as np
+import sys
 from datetime import datetime
-import os
-import joblib
-from models import ExoplanetClassifier
-from data_processing import DataProcessor
+from pathlib import Path
+from typing import Any, Dict, List
+
+import pandas as pd
+from flask import Flask, jsonify, request, send_file
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
+
+# Ensure project root is available for imports
+BASE_DIR = Path(__file__).resolve().parents[2]
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
+from data_processing import DataProcessor  # noqa: E402
+from model_manager import ModelManager  # noqa: E402
+from ml.train_models import run_training  # noqa: E402
 
 app = Flask(__name__)
 CORS(app)
 
-# Global variables
-classifier = ExoplanetClassifier()
+UPLOAD_FOLDER = BASE_DIR / 'uploads'
+RESULTS_FOLDER = BASE_DIR / 'results'
+MODELS_FOLDER = BASE_DIR / 'ml_models'
+
+for folder in (UPLOAD_FOLDER, RESULTS_FOLDER, MODELS_FOLDER):
+    folder.mkdir(parents=True, exist_ok=True)
+
+
 data_processor = DataProcessor()
-current_model = None
-model_stats = {}
+model_manager = ModelManager(MODELS_FOLDER, data_processor.feature_columns)
+model_manager.load_models()
 
-UPLOAD_FOLDER = 'uploads'
-RESULTS_FOLDER = 'results'
-MODELS_FOLDER = 'saved_models'
 
-for folder in [UPLOAD_FOLDER, RESULTS_FOLDER, MODELS_FOLDER]:
-    os.makedirs(folder, exist_ok=True)
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+def _model_not_ready_response():
+    return jsonify({'error': 'No model trained yet. Please train a model first.'}), 400
 
+
+def _serialize_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    payload: List[Dict[str, Any]] = []
+    for item in results:
+        payload.append({
+            'name': item['name'],
+            'accuracy': float(item['accuracy']),
+            'recall': float(item['recall']),
+            'best_threshold': float(item['best_threshold']),
+            'report_path': item.get('report_path'),
+            'scaler_path': item.get('scaler_path')
+        })
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# Classification endpoints
+# ---------------------------------------------------------------------------
 @app.route('/api/classify', methods=['POST'])
 def classify():
-    """Classify a single exoplanet candidate"""
     try:
+        if not model_manager.is_loaded():
+            return _model_not_ready_response()
+
         data = request.json or {}
-        
-        # Extract features
         features = {col: data.get(col) for col in data_processor.feature_columns}
-        
-        # Check if model is trained
-        if current_model is None:
-            return jsonify({
-                'error': 'No model trained yet. Please train a model first.'
-            }), 400
-        
-        # Preprocess and predict
-        processed_features = data_processor.preprocess_single(features)
-        prediction, confidence = classifier.predict(processed_features)
-        
+
+        processed = data_processor.preprocess_single(features)
+        results = model_manager.predict_single(processed)
+
         return jsonify({
-            'prediction': prediction,
-            'confidence': float(confidence),
-            'algorithm': model_stats.get('algorithm', 'unknown')
+            'models': results
         })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
+    except Exception as exc:  # pragma: no cover - defensive
+        return jsonify({'error': str(exc)}), 500
 
 
 @app.route('/api/classify/jsonl', methods=['POST'])
 def classify_jsonl():
-    """Classify multiple samples provided as JSON Lines"""
     try:
-        if current_model is None:
-            return jsonify({
-                'error': 'No model trained yet. Please train a model first.'
-            }), 400
+        if not model_manager.is_loaded():
+            return _model_not_ready_response()
 
         payload = request.json or {}
         jsonl_text = payload.get('jsonl')
 
         if jsonl_text is None:
             return jsonify({'error': 'No JSONL payload provided.'}), 400
-
         if not isinstance(jsonl_text, str):
             return jsonify({'error': 'JSONL payload must be a string.'}), 400
 
@@ -76,9 +98,9 @@ def classify_jsonl():
         if not lines:
             return jsonify({'error': 'JSONL payload is empty.', 'results': []}), 400
 
-        valid_records = []
-        valid_line_numbers = []
-        line_results = {}
+        valid_records: List[Dict[str, Any]] = []
+        valid_line_numbers: List[int] = []
+        line_results: Dict[int, Dict[str, Any]] = {}
 
         for idx, raw_line in enumerate(lines, start=1):
             stripped = raw_line.strip()
@@ -108,20 +130,33 @@ def classify_jsonl():
                 }
                 continue
 
+            line_results[idx] = {
+                'line': idx,
+                'status': 'ok',
+                'predictions': {}
+            }
             valid_records.append(record)
             valid_line_numbers.append(idx)
 
         if valid_records:
             processed = data_processor.preprocess_records(valid_records)
-            predictions, confidences = classifier.predict_batch(processed)
+            batch_outputs = model_manager.predict_batch(processed)
 
-            for line_no, prediction, confidence in zip(valid_line_numbers, predictions, confidences):
-                line_results[line_no] = {
-                    'line': line_no,
-                    'status': 'ok',
-                    'prediction': prediction,
-                    'confidence': float(confidence)
-                }
+            for model_name, output in batch_outputs.items():
+                predictions = output['predictions']
+                confidences = output['confidences']
+                probabilities = output['probabilities']
+
+                for idx, line_no in enumerate(valid_line_numbers):
+                    entry = line_results.get(line_no)
+                    if not entry or entry.get('status') != 'ok':
+                        continue
+                    entry.setdefault('predictions', {})[model_name] = {
+                        'prediction': predictions[idx],
+                        'confidence': float(confidences[idx]),
+                        'probability': float(probabilities[idx]),
+                        'threshold': float(output['threshold'])
+                    }
 
         results = [line_results[idx] for idx in sorted(line_results.keys())]
         total = len(lines)
@@ -144,153 +179,161 @@ def classify_jsonl():
             'failed': failed_count
         })
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:  # pragma: no cover - defensive
+        return jsonify({'error': str(exc)}), 500
+
 
 @app.route('/api/classify/batch', methods=['POST'])
 def classify_batch():
-    """Classify multiple exoplanet candidates from CSV"""
     try:
+        if not model_manager.is_loaded():
+            return _model_not_ready_response()
+
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
-        
+
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-        
-        # Check if model is trained
-        if current_model is None:
-            return jsonify({
-                'error': 'No model trained yet. Please train a model first.'
-            }), 400
-        
-        # Save uploaded file
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(filepath)
-        
-        # Read and process CSV
-        df = pd.read_csv(filepath)
+
+        filename = secure_filename(file.filename)
+        upload_path = UPLOAD_FOLDER / filename
+        file.save(upload_path)
+
+        df = pd.read_csv(upload_path)
         processed_df = data_processor.preprocess_batch(df)
-        
-        # Make predictions
-        predictions, confidences = classifier.predict_batch(processed_df)
-        
-        # Add predictions to dataframe
-        df['prediction'] = predictions
-        df['confidence'] = confidences
-        
-        # Count results
-        confirmed = (predictions == 'Confirmed').sum()
-        candidates = (predictions == 'Candidate').sum()
-        false_positives = (predictions == 'False Positive').sum()
-        
-        # Save results
+
+        batch_outputs = model_manager.predict_batch(processed_df.values)
+
+        summary: Dict[str, Dict[str, Any]] = {}
+
+        for model_name, output in batch_outputs.items():
+            predictions = output['predictions']
+            confidences = output['confidences']
+            probabilities = output['probabilities']
+            threshold = output['threshold']
+
+            slug = model_name.lower().replace(' ', '_')
+            df[f'prediction_{slug}'] = predictions
+            df[f'confidence_{slug}'] = confidences
+            df[f'probability_candidate_{slug}'] = probabilities
+
+            candidates = sum(1 for label in predictions if label == model_manager.positive_label)
+            likely_false = len(predictions) - candidates
+
+            summary[model_name] = {
+                'candidates': int(candidates),
+                'likely_false_positives': int(likely_false),
+                'threshold': float(threshold)
+            }
+
         result_filename = f'results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-        result_path = os.path.join(RESULTS_FOLDER, result_filename)
+        result_path = RESULTS_FOLDER / result_filename
         df.to_csv(result_path, index=False)
-        
+
         return jsonify({
             'total': len(df),
-            'confirmed': int(confirmed),
-            'candidates': int(candidates),
-            'false_positives': int(false_positives),
+            'models': summary,
+            'positive_label': model_manager.positive_label,
+            'negative_label': model_manager.negative_label,
             'result_file': result_filename
         })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
+    except Exception as exc:  # pragma: no cover - defensive
+        return jsonify({'error': str(exc)}), 500
+
 
 @app.route('/api/download/<filename>', methods=['GET'])
-def download_results(filename):
-    """Download batch classification results"""
+def download_results(filename: str):
     try:
-        filepath = os.path.join(RESULTS_FOLDER, filename)
+        filepath = RESULTS_FOLDER / filename
+        if not filepath.exists():
+            return jsonify({'error': 'Result file not found'}), 404
         return send_file(filepath, as_attachment=True)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 404
+    except Exception as exc:  # pragma: no cover - defensive
+        return jsonify({'error': str(exc)}), 404
 
+
+# ---------------------------------------------------------------------------
+# Training & model management
+# ---------------------------------------------------------------------------
 @app.route('/api/train', methods=['POST'])
 def train():
-    """Train a new model"""
-    global current_model, model_stats
-    
     try:
-        data = request.json
+        data = request.json or {}
         dataset = data.get('dataset', 'combined')
-        algorithm = data.get('algorithm', 'xgboost')
-        train_split = data.get('train_split', 0.8)
-        epochs = data.get('epochs', 100)
-        hyperparameters = data.get('hyperparameters', {})
-        
-        print(f"Training {algorithm} on {dataset} dataset...")
-        
-        # Load dataset
-        X, y = data_processor.load_dataset(dataset)
-        
-        if X is None or y is None:
-            return jsonify({'error': 'Failed to load dataset'}), 400
-        
-        # Train model
+        train_split = float(data.get('train_split', 0.8))
+        scale = bool(data.get('scale', False))
+        test_size = max(0.05, min(0.5, 1 - train_split))
+
+        training_df = data_processor.build_training_dataframe(dataset)
+        if training_df is None or training_df.empty:
+            return jsonify({'error': 'Failed to build training dataset'}), 400
+
         start_time = datetime.now()
-        metrics = classifier.train(
-            X, y,
-            algorithm=algorithm,
-            train_split=train_split,
-            epochs=epochs,
-            hyperparameters=hyperparameters
+        results = run_training(
+            data=training_df,
+            feature_columns=data_processor.feature_columns,
+            target='label',
+            out_dir=MODELS_FOLDER,
+            scale=scale,
+            test_size=test_size,
+            classes=[model_manager.positive_label, model_manager.negative_label],
+            pos_label=model_manager.positive_label
         )
         training_time = datetime.now() - start_time
-        
-        # Save model
-        current_model = classifier.model
-        model_path = os.path.join(MODELS_FOLDER, f'{algorithm}_model.pkl')
-        joblib.dump(current_model, model_path)
-        
-        # Update stats
-        model_stats = {
-            'algorithm': algorithm,
-            'dataset': dataset,
-            'total_samples': len(X),
-            'accuracy': metrics['accuracy'],
-            'precision': metrics['precision'],
-            'recall': metrics['recall'],
-            'f1_score': metrics['f1_score'],
-            'confusion_matrix': metrics['confusion_matrix'],
-            'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'training_time': str(training_time).split('.')[0]
-        }
-        
-        print(f"Training completed! Accuracy: {metrics['accuracy']:.4f}")
-        
+
+        model_manager.load_models()
+        stats = model_manager.get_stats()
+
         return jsonify({
             'message': 'Training completed successfully',
-            'accuracy': float(metrics['accuracy']) * 100,
-            'f1_score': float(metrics['f1_score'])
+            'results': _serialize_results(results),
+            'models': stats.get('models'),
+            'selected_model': stats.get('best_model'),
+            'threshold': stats.get('best_model_metrics', {}).get('threshold') if stats.get('best_model_metrics') else None,
+            'training_time': str(training_time).split('.')[0]
         })
-        
-    except Exception as e:
-        print(f"Training error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+
+    except Exception as exc:  # pragma: no cover - defensive
+        return jsonify({'error': str(exc)}), 500
+
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    """Get current model statistics"""
-    if not model_stats:
-        return jsonify({
-            'message': 'No model trained yet'
-        })
-    
-    return jsonify(model_stats)
+    stats = model_manager.get_stats()
+    status_code = 200 if stats.get('model_loaded') else 404
+    return jsonify(stats), status_code
+
+
+@app.route('/api/model/threshold', methods=['POST'])
+def update_threshold():
+    try:
+        if not model_manager.is_loaded():
+            return _model_not_ready_response()
+
+        data = request.json or {}
+        threshold = data.get('threshold')
+        model_name = data.get('model')
+        if threshold is None or not model_name:
+            return jsonify({'error': 'Model name and threshold value are required.'}), 400
+
+        model_manager.set_threshold(model_name, float(threshold))
+        return jsonify(model_manager.get_stats())
+
+    except Exception as exc:  # pragma: no cover - defensive
+        return jsonify({'error': str(exc)}), 400
+
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'model_loaded': current_model is not None
+        'model_loaded': model_manager.is_loaded()
     })
 
-if __name__ == '__main__':
-    print("Starting ExoDetect AI Backend Server...")
-    print("Server running on http://localhost:5000")
+
+if __name__ == '__main__':  # pragma: no cover - manual launch helper
+    print('Starting ExoDetect AI Backend Server...')
+    print('Server running on http://localhost:5000')
     app.run(debug=True, host='0.0.0.0', port=5000)
