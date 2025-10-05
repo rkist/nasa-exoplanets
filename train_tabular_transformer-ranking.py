@@ -144,11 +144,11 @@ def train(args):
 	if args.sample_frac < 1.0:
 		df_labeled = df[labeled_mask]
 		y_labeled = y_all[labeled_mask]
-		df_labeled, _, y_labeled, _ = train_test_split(df_labeled, y_labeled, train_size=args.sample_frac, stratify=y_labeled, random_state=42)
-		# Reassemble df and y_all (keep unlabeled rows untouched)
-		idx_labeled = df_labeled.index
-		df = pd.concat([df_labeled, df[~labeled_mask]], axis=0).sort_index()
-		y_all = np.where(df.index.isin(idx_labeled), y_labeled, np.where(df.index.isin(df[~labeled_mask].index), -1, -1))
+		df_labeled, _, _, _ = train_test_split(df_labeled, y_labeled, train_size=args.sample_frac, stratify=y_labeled, random_state=42)
+		# Reassemble df: sampled labeled + all unlabeled; then recompute y_all from labels
+		df = pd.concat([df_labeled, df[~labeled_mask]], axis=0)
+		label_str = df[label_col].astype(str)
+		y_all = np.where(label_str == "CONFIRMED", 1, np.where(label_str == "FALSE POSITIVE", 0, -1)).astype(int)
 
 	X_num, X_cat, cat_maps = build_arrays(df.drop(columns=[label_col]), num_cols, cat_cols)
 	# Train/val split only on labeled data (exclude candidates)
@@ -161,10 +161,10 @@ def train(args):
 
 	# Log dataset shapes and class distribution
 	logger.info(f"Dataset: total={len(df)} train={len(y_tr)} val={len(y_te)}")
-	train_counts = np.bincount(y_tr, minlength=len(label_encoder.classes_))
-	te_counts = np.bincount(y_te, minlength=len(label_encoder.classes_))
-	logger.info("Train class counts: " + ", ".join([f"{cls}={int(c)}" for cls, c in zip(label_encoder.classes_, train_counts)]))
-	logger.info("Val class counts:   " + ", ".join([f"{cls}={int(c)}" for cls, c in zip(label_encoder.classes_, te_counts)]))
+	train_counts = np.bincount(y_tr, minlength=2)
+	te_counts = np.bincount(y_te, minlength=2)
+	logger.info(f"Train class counts: NEG(0)={int(train_counts[0])}, POS(1)={int(train_counts[1])}")
+	logger.info(f"Val class counts:   NEG(0)={int(te_counts[0])}, POS(1)={int(te_counts[1])}")
 	logger.info(f"Num features={len(num_cols)} Cat features={len(cat_cols)}")
 
 	# Standardize numeric features using train statistics
@@ -302,7 +302,8 @@ def train(args):
 		"num_cols": num_cols,
 		"cat_cols": cat_cols,
 		"cat_maps": {k: {str(kk): int(vv) for kk, vv in m.items()} for k, m in cat_maps.items()},
-		"label_classes": label_encoder.classes_.tolist(),
+		"labels": ["FALSE POSITIVE", "CONFIRMED"],
+		"target": "prob_confirmed",
 		"embed_dim": args.embed_dim,
 		"heads": args.heads,
 		"layers": args.layers,
