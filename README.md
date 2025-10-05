@@ -318,6 +318,122 @@ Parameters:
 - `--lr`: AdamW learning rate
 - `--sample_frac`: Fraction of data to use (1.0 = all)
 
+Here’s the **README section** you can drop into your project to document how to train your machine learning models — clear, production-grade, and matching exactly your command and outputs 👇
+
+---
+
+## 🚀 Training Machine Learning Models
+
+The `ml/train_models.py` script trains and evaluates multiple classifiers (RandomForest, XGBoost, LightGBM, and CatBoost) on the Kepler exoplanet dataset.
+It handles automatic scaling, class filtering, threshold optimization, and saves both the model and a detailed `.info` report for each run.
+
+### 🔧 Command Example
+
+```bash
+python ml/train_models.py \
+  --data data/frames/kepler_summary_with_labels.jsonl \
+  --target label \
+  --classes 'CONFIRMED','FALSE POSITIVE' \
+  --test_size 0.2 \
+  --out ml_models \
+  --feature eff_temp surface_gravity metallicity radius reddening extinction gkcolor grcolor jkcolor \
+  --pos_label 'FALSE POSITIVE'
+```
+
+### 🧩 Arguments
+
+| Argument      | Required      | Description                                                                             |
+| ------------- | ------------- | --------------------------------------------------------------------------------------- |
+| `--data`      | ✅             | Path to dataset (`.csv`, `.jsonl`, or `.parquet`).                                      |
+| `--target`    | ✅             | Target column name (e.g., `label`).                                                     |
+| `--classes`   | ✅             | Comma-separated list of two class names to keep (e.g., `'CONFIRMED','FALSE POSITIVE'`). |
+| `--pos_label` | ✅             | Which class to treat as the *positive* label for recall/F1 metrics.                     |
+| `--feature`   | optional      | List of feature columns to use. Defaults to all columns except the target.              |
+| `--out`       | optional      | Directory to save trained models and reports (default: `models_out`).                   |
+| `--test_size` | optional      | Proportion of data used for testing (default: `0.2`).                                   |
+| `--scale`     | optional flag | Apply `StandardScaler` normalization to features before training.                       |
+
+---
+
+### 🧠 What the Script Does
+
+1. **Loads the dataset** (CSV, Parquet, or JSONL).
+2. **Filters** the classes according to `--classes`.
+3. **Encodes** the positive label (`--pos_label`) as `1`, others as `0`.
+4. **Splits** the dataset into training and testing subsets.
+5. **Trains** four models:
+
+   * RandomForest
+   * XGBoost
+   * LightGBM
+   * CatBoost
+6. **Evaluates** each model:
+
+   * Accuracy, Recall, Precision, and F1-score
+   * Confusion matrix
+   * Automatic threshold optimization for both positive and negative classes
+7. **Saves**:
+
+   * `*_model.pkl` → trained model
+   * `*_scaler.pkl` → optional scaler (if `--scale` used)
+   * `*.info` → markdown report with metrics, confusion matrices, and threshold tables
+
+---
+
+### 📄 Example Output
+
+```
+📂 Loading dataset from data/frames/kepler_summary_with_labels.jsonl
+✅ Dataset loaded: 50649 rows, 59 columns
+⚠️ Using subset of classes: ['CONFIRMED', 'FALSE POSITIVE']
+
+📊 Class distribution after filtering:
+label
+FALSE POSITIVE    0.68
+CONFIRMED         0.32
+
+✅ Using 'FALSE POSITIVE' as positive class (1), all others as 0
+
+Training RandomForest...
+📊 RandomForest Evaluation:
+Accuracy: 0.9998 | Recall: 0.9996
+Confusion Matrix:
+ [[2678    0]
+ [   2 5681]]
+💾 Model saved to ml_models/RandomForest_model.pkl
+Report saved → ml_models/RandomForest.info
+...
+🏁 Final Model Results:
+          Model  Accuracy    Recall
+1       XGBoost  0.999880  0.999824
+0  RandomForest  0.999761  0.999648
+2      LightGBM  0.999641  0.999472
+3      CatBoost  0.999641  0.999472
+```
+
+---
+
+### 🧾 Output Files (per model)
+
+Each model produces:
+
+```
+ml_models/
+├── RandomForest_model.pkl
+├── RandomForest_scaler.pkl
+├── RandomForest.info
+├── XGBoost_model.pkl
+├── XGBoost.info
+├── LightGBM_model.pkl
+├── LightGBM.info
+├── CatBoost_model.pkl
+├── CatBoost.info
+```
+
+The `.info` files contain full evaluation results, including the optimal thresholds for both positive and negative classes and top threshold performance tables.
+
+---
+
 ## 🛠️ Technologies
 
 ### Frontend
