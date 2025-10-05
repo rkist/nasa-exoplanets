@@ -1,0 +1,81 @@
+2025-10-05 14:59:24,678 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'epochs': 30, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 1.0, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 2, 'early_stopping_patience': 5, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank_train.log', 'log_interval': 100, 'verbose': False, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 14:59:25,094 INFO Dataset: total=106978 train=70039 val=17510
+2025-10-05 14:59:25,095 INFO Train class counts: NEG(0)=47007, POS(1)=23032
+2025-10-05 14:59:25,095 INFO Val class counts:   NEG(0)=11752, POS(1)=5758
+2025-10-05 14:59:25,095 INFO Num features=53 Cat features=5
+2025-10-05 14:59:25,117 INFO Sampler: WeightedRandomSampler (oversampling)
+2025-10-05 14:59:25,141 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 14:59:26,341 INFO Loss: BCEWithLogits
+2025-10-05 14:59:26,341 INFO Optimizer: AdamW lr=0.0002 weight_decay=0.01
+2025-10-05 14:59:26,341 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=2
+2025-10-05 14:59:26,341 INFO Training: epochs=30 batch_size=512 steps_per_epoch=137
+2025-10-05 15:05:45,021 INFO Epoch 1 Step 100/137 - lr 0.000200 - loss 0.2860
+2025-10-05 15:08:30,934 INFO Epoch 1/30 - lr 0.000200 - loss 0.2537 - val f1 0.8998 - val auc 0.9778
+2025-10-05 15:14:09,430 INFO Epoch 2 Step 100/137 - lr 0.000200 - loss 0.1600
+2025-10-05 15:16:08,093 INFO Epoch 2/30 - lr 0.000200 - loss 0.1565 - val f1 0.9082 - val auc 0.9792
+2025-10-05 15:20:57,228 INFO Epoch 3 Step 100/137 - lr 0.000200 - loss 0.1485
+2025-10-05 15:23:01,378 INFO Epoch 3/30 - lr 0.000200 - loss 0.1481 - val f1 0.9045 - val auc 0.9802
+2025-10-05 15:27:56,050 INFO Epoch 4 Step 100/137 - lr 0.000200 - loss 0.1511
+2025-10-05 15:29:56,389 INFO Epoch 4/30 - lr 0.000200 - loss 0.1505 - val f1 0.9073 - val auc 0.9810
+2025-10-05 15:34:46,236 INFO Epoch 5 Step 100/137 - lr 0.000200 - loss 0.1430
+2025-10-05 15:36:54,531 INFO Epoch 5/30 - lr 0.000200 - loss 0.1416 - val f1 0.9162 - val auc 0.9816
+2025-10-05 15:41:47,551 INFO Epoch 6 Step 100/137 - lr 0.000200 - loss 0.1351
+2025-10-05 15:43:46,984 INFO Epoch 6/30 - lr 0.000200 - loss 0.1369 - val f1 0.9172 - val auc 0.9828
+2025-10-05 15:48:45,591 INFO Epoch 7 Step 100/137 - lr 0.000200 - loss 0.1324
+2025-10-05 15:50:43,910 INFO Epoch 7/30 - lr 0.000200 - loss 0.1311 - val f1 0.9217 - val auc 0.9834
+2025-10-05 15:55:32,397 INFO Epoch 8 Step 100/137 - lr 0.000200 - loss 0.1246
+2025-10-05 15:57:28,504 INFO Epoch 8/30 - lr 0.000200 - loss 0.1262 - val f1 0.9197 - val auc 0.9830
+2025-10-05 16:02:15,887 INFO Epoch 9 Step 100/137 - lr 0.000200 - loss 0.1278
+2025-10-05 16:04:17,858 INFO Epoch 9/30 - lr 0.000200 - loss 0.1270 - val f1 0.9151 - val auc 0.9851
+2025-10-05 16:09:15,962 INFO Epoch 10 Step 100/137 - lr 0.000200 - loss 0.1203
+2025-10-05 16:11:17,828 INFO Epoch 10/30 - lr 0.000200 - loss 0.1180 - val f1 0.9283 - val auc 0.9869
+2025-10-05 16:16:17,040 INFO Epoch 11 Step 100/137 - lr 0.000200 - loss 0.1162
+2025-10-05 16:18:16,514 INFO Epoch 11/30 - lr 0.000200 - loss 0.1161 - val f1 0.9352 - val auc 0.9889
+2025-10-05 16:23:10,219 INFO Epoch 12 Step 100/137 - lr 0.000200 - loss 0.1086
+2025-10-05 16:25:12,660 INFO Epoch 12/30 - lr 0.000200 - loss 0.1074 - val f1 0.9344 - val auc 0.9896
+2025-10-05 16:30:07,543 INFO Epoch 13 Step 100/137 - lr 0.000200 - loss 0.1015
+2025-10-05 16:32:09,793 INFO Epoch 13/30 - lr 0.000200 - loss 0.1000 - val f1 0.9415 - val auc 0.9914
+2025-10-05 16:37:00,662 INFO Epoch 14 Step 100/137 - lr 0.000200 - loss 0.0975
+2025-10-05 16:38:59,835 INFO Epoch 14/30 - lr 0.000200 - loss 0.0960 - val f1 0.9439 - val auc 0.9930
+2025-10-05 16:43:48,061 INFO Epoch 15 Step 100/137 - lr 0.000200 - loss 0.0902
+2025-10-05 16:45:45,479 INFO Epoch 15/30 - lr 0.000200 - loss 0.0904 - val f1 0.9462 - val auc 0.9937
+2025-10-05 16:50:33,572 INFO Epoch 16 Step 100/137 - lr 0.000200 - loss 0.0836
+2025-10-05 16:52:32,067 INFO Epoch 16/30 - lr 0.000200 - loss 0.0840 - val f1 0.9529 - val auc 0.9953
+2025-10-05 16:57:35,841 INFO Epoch 17 Step 100/137 - lr 0.000200 - loss 0.0767
+2025-10-05 16:59:36,712 INFO Epoch 17/30 - lr 0.000200 - loss 0.0746 - val f1 0.9612 - val auc 0.9965
+2025-10-05 17:04:35,241 INFO Epoch 18 Step 100/137 - lr 0.000200 - loss 0.0665
+2025-10-05 17:06:39,728 INFO Epoch 18/30 - lr 0.000200 - loss 0.0676 - val f1 0.9699 - val auc 0.9977
+2025-10-05 17:11:44,414 INFO Epoch 19 Step 100/137 - lr 0.000200 - loss 0.0632
+2025-10-05 17:13:48,487 INFO Epoch 19/30 - lr 0.000200 - loss 0.0608 - val f1 0.9768 - val auc 0.9985
+2025-10-05 17:18:53,150 INFO Epoch 20 Step 100/137 - lr 0.000200 - loss 0.0564
+2025-10-05 17:21:30,698 INFO Epoch 20/30 - lr 0.000200 - loss 0.0559 - val f1 0.9674 - val auc 0.9983
+2025-10-05 17:27:54,946 INFO Epoch 21 Step 100/137 - lr 0.000200 - loss 0.0476
+2025-10-05 17:30:35,460 INFO Epoch 21/30 - lr 0.000200 - loss 0.0473 - val f1 0.9799 - val auc 0.9990
+2025-10-05 17:36:54,484 INFO Epoch 22 Step 100/137 - lr 0.000200 - loss 0.0452
+2025-10-05 17:40:00,189 INFO Epoch 22/30 - lr 0.000200 - loss 0.0450 - val f1 0.9796 - val auc 0.9992
+2025-10-05 17:47:30,586 INFO Epoch 23 Step 100/137 - lr 0.000200 - loss 0.0420
+2025-10-05 17:50:21,433 INFO Epoch 23/30 - lr 0.000200 - loss 0.0414 - val f1 0.9855 - val auc 0.9992
+2025-10-05 17:57:07,414 INFO Epoch 24 Step 100/137 - lr 0.000200 - loss 0.0353
+2025-10-05 17:59:53,126 INFO Epoch 24/30 - lr 0.000200 - loss 0.0345 - val f1 0.9880 - val auc 0.9994
+2025-10-05 18:05:36,573 INFO Epoch 25 Step 100/137 - lr 0.000200 - loss 0.0320
+2025-10-05 18:07:29,034 INFO Epoch 25/30 - lr 0.000200 - loss 0.0321 - val f1 0.9882 - val auc 0.9994
+2025-10-05 18:11:59,367 INFO Epoch 26 Step 100/137 - lr 0.000200 - loss 0.0327
+2025-10-05 18:13:53,982 INFO Epoch 26/30 - lr 0.000200 - loss 0.0313 - val f1 0.9884 - val auc 0.9997
+2025-10-05 18:18:31,870 INFO Epoch 27 Step 100/137 - lr 0.000200 - loss 0.0281
+2025-10-05 18:20:29,518 INFO Epoch 27/30 - lr 0.000200 - loss 0.0276 - val f1 0.9923 - val auc 0.9997
+2025-10-05 18:25:19,778 INFO Epoch 28 Step 100/137 - lr 0.000200 - loss 0.0277
+2025-10-05 18:27:23,745 INFO Epoch 28/30 - lr 0.000200 - loss 0.0274 - val f1 0.9941 - val auc 0.9998
+2025-10-05 18:32:25,760 INFO Epoch 29 Step 100/137 - lr 0.000200 - loss 0.0209
+2025-10-05 18:34:29,165 INFO Epoch 29/30 - lr 0.000200 - loss 0.0214 - val f1 0.9930 - val auc 0.9998
+2025-10-05 18:39:16,444 INFO Epoch 30 Step 100/137 - lr 0.000200 - loss 0.0232
+2025-10-05 18:41:16,010 INFO Epoch 30/30 - lr 0.000200 - loss 0.0231 - val f1 0.9928 - val auc 0.9998
+2025-10-05 18:41:16,048 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       1.00      1.00      1.00     11752
+     CONFIRMED       0.99      1.00      0.99      5758
+
+      accuracy                           1.00     17510
+     macro avg       0.99      1.00      0.99     17510
+  weighted avg       1.00      1.00      1.00     17510
+

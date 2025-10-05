@@ -1,0 +1,118 @@
+2025-10-05 12:39:40,171 INFO Starting trainer with args: {'data': 'data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 3, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 3, 'seed': 42, 'log_file': 'logs/rank01.log', 'log_interval': 50, 'verbose': True, 'scores_out': 'ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 12:40:11,811 INFO Starting trainer with args: {'data': 'data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 3, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 3, 'seed': 42, 'log_file': 'logs/rank01.log', 'log_interval': 50, 'verbose': True, 'scores_out': 'ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 12:40:12,155 INFO Dataset: total=36938 train=14007 val=3502
+2025-10-05 12:41:54,854 INFO Starting trainer with args: {'data': 'data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 3, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 3, 'seed': 42, 'log_file': 'logs/rank01.log', 'log_interval': 50, 'verbose': True, 'scores_out': 'ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 12:41:55,256 INFO Dataset: total=36938 train=14007 val=3502
+2025-10-05 12:41:55,256 INFO Train class counts: NEG(0)=9401, POS(1)=4606
+2025-10-05 12:41:55,256 INFO Val class counts:   NEG(0)=2350, POS(1)=1152
+2025-10-05 12:41:55,257 INFO Num features=53 Cat features=5
+2025-10-05 12:41:55,262 INFO Sampler: WeightedRandomSampler (oversampling)
+2025-10-05 12:41:55,637 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 12:41:56,620 INFO Loss: BCEWithLogits
+2025-10-05 12:41:56,621 INFO Optimizer: AdamW lr=0.0002 weight_decay=0.01
+2025-10-05 12:41:56,621 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=1
+2025-10-05 12:41:56,621 INFO Training: epochs=3 batch_size=512 steps_per_epoch=28
+2025-10-05 12:43:57,890 INFO Epoch 1/3 - lr 0.000200 - loss 0.4674 - val f1 0.8567 - val auc 0.9608
+2025-10-05 12:46:01,487 INFO Epoch 2/3 - lr 0.000200 - loss 0.1861 - val f1 0.9081 - val auc 0.9787
+2025-10-05 12:47:58,357 INFO Epoch 3/3 - lr 0.000200 - loss 0.1687 - val f1 0.9001 - val auc 0.9806
+2025-10-05 12:47:58,443 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       0.99      0.90      0.94      2350
+     CONFIRMED       0.83      0.99      0.90      1152
+
+      accuracy                           0.93      3502
+     macro avg       0.91      0.94      0.92      3502
+  weighted avg       0.94      0.93      0.93      3502
+
+2025-10-05 13:00:53,592 INFO Starting trainer with args: {'data': 'data/frames/kepler_summary_with_labels.parquet', 'out': 'ranking/v0.1', 'epochs': 1, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 2, 'seed': 42, 'log_file': 'logs/rank01.log', 'log_interval': 50, 'verbose': False, 'scores_out': 'ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 13:00:54,088 INFO Dataset: total=36938 train=14007 val=3502
+2025-10-05 13:00:54,089 INFO Train class counts: NEG(0)=9401, POS(1)=4606
+2025-10-05 13:00:54,089 INFO Val class counts:   NEG(0)=2350, POS(1)=1152
+2025-10-05 13:00:54,089 INFO Num features=53 Cat features=5
+2025-10-05 13:00:54,093 INFO Sampler: WeightedRandomSampler (oversampling)
+2025-10-05 13:00:54,102 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 13:00:54,916 INFO Loss: BCEWithLogits
+2025-10-05 13:00:54,916 INFO Optimizer: AdamW lr=0.0002 weight_decay=0.01
+2025-10-05 13:00:54,916 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=1
+2025-10-05 13:00:54,916 INFO Training: epochs=1 batch_size=512 steps_per_epoch=28
+2025-10-05 13:03:35,790 INFO Epoch 1/1 - lr 0.000200 - loss 0.4674 - val f1 0.8567 - val auc 0.9608
+2025-10-05 13:03:35,874 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       0.99      0.84      0.91      2350
+     CONFIRMED       0.76      0.99      0.86      1152
+
+      accuracy                           0.89      3502
+     macro avg       0.87      0.92      0.88      3502
+  weighted avg       0.92      0.89      0.89      3502
+
+2025-10-05 13:23:49,234 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'epochs': 1, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 2, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank01.log', 'log_interval': 50, 'verbose': False, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 13:23:49,563 INFO Dataset: total=36938 train=14007 val=3502
+2025-10-05 13:23:49,563 INFO Train class counts: NEG(0)=9401, POS(1)=4606
+2025-10-05 13:23:49,563 INFO Val class counts:   NEG(0)=2350, POS(1)=1152
+2025-10-05 13:23:49,563 INFO Num features=53 Cat features=5
+2025-10-05 13:23:49,566 INFO Sampler: WeightedRandomSampler (oversampling)
+2025-10-05 13:23:49,573 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 13:23:50,563 INFO Loss: BCEWithLogits
+2025-10-05 13:23:50,563 INFO Optimizer: AdamW lr=0.0002 weight_decay=0.01
+2025-10-05 13:23:50,563 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=1
+2025-10-05 13:23:50,563 INFO Training: epochs=1 batch_size=512 steps_per_epoch=28
+2025-10-05 13:25:15,458 INFO Epoch 1/1 - lr 0.000200 - loss 0.4674 - val f1 0.8567 - val auc 0.9608
+2025-10-05 13:25:15,487 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       0.99      0.84      0.91      2350
+     CONFIRMED       0.76      0.99      0.86      1152
+
+      accuracy                           0.89      3502
+     macro avg       0.87      0.92      0.88      3502
+  weighted avg       0.92      0.89      0.89      3502
+
+2025-10-05 13:41:02,557 INFO Wrote scores to /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv (rows=19429)
+2025-10-05 13:42:26,565 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'epochs': 1, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 2, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank01.log', 'log_interval': 50, 'verbose': True, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 13:42:26,846 INFO Dataset: total=36938 train=14007 val=3502
+2025-10-05 13:42:26,847 INFO Train class counts: NEG(0)=9401, POS(1)=4606
+2025-10-05 13:42:26,847 INFO Val class counts:   NEG(0)=2350, POS(1)=1152
+2025-10-05 13:42:26,847 INFO Num features=53 Cat features=5
+2025-10-05 13:42:26,852 INFO Sampler: WeightedRandomSampler (oversampling)
+2025-10-05 13:42:26,871 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 13:42:27,763 INFO Loss: BCEWithLogits
+2025-10-05 13:42:27,763 INFO Optimizer: AdamW lr=0.0002 weight_decay=0.01
+2025-10-05 13:42:27,763 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=1
+2025-10-05 13:42:27,763 INFO Training: epochs=1 batch_size=512 steps_per_epoch=28
+2025-10-05 13:43:57,282 INFO Epoch 1/1 - lr 0.000200 - loss 0.4674 - val f1 0.8567 - val auc 0.9608
+2025-10-05 13:43:57,308 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       0.99      0.84      0.91      2350
+     CONFIRMED       0.76      0.99      0.86      1152
+
+      accuracy                           0.89      3502
+     macro avg       0.87      0.92      0.88      3502
+  weighted avg       0.92      0.89      0.89      3502
+
+2025-10-05 13:59:52,857 INFO Wrote scores to /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv (rows=19429)
+2025-10-05 14:32:10,767 INFO Starting trainer with args: {'data': '/Users/raul.kist/Code/rkist/nasa-exoplanets/data/frames/kepler_summary_with_labels.parquet', 'out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1', 'epochs': 1, 'batch_size': 512, 'embed_dim': 128, 'heads': 8, 'layers': 4, 'dropout': 0.1, 'lr': 0.0002, 'sample_frac': 0.2, 'class_weight': False, 'oversample': True, 'clip_grad_norm': 1.0, 'weight_decay': 0.01, 'label_smoothing': 0.0, 'scheduler': 'plateau', 'lr_factor': 0.5, 'lr_patience': 1, 'early_stopping_patience': 2, 'seed': 42, 'log_file': '/Users/raul.kist/Code/rkist/nasa-exoplanets/logs/rank01.log', 'log_interval': 50, 'verbose': True, 'scores_out': '/Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv', 'score_only_candidates': True}
+2025-10-05 14:32:11,081 INFO Dataset: total=36938 train=14007 val=3502
+2025-10-05 14:32:11,082 INFO Train class counts: NEG(0)=9401, POS(1)=4606
+2025-10-05 14:32:11,082 INFO Val class counts:   NEG(0)=2350, POS(1)=1152
+2025-10-05 14:32:11,082 INFO Num features=53 Cat features=5
+2025-10-05 14:32:11,091 INFO Sampler: WeightedRandomSampler (oversampling)
+2025-10-05 14:32:11,116 INFO Model: FT-Transformer embed_dim=128 heads=8 layers=4 dropout=0.1
+2025-10-05 14:32:11,908 INFO Loss: BCEWithLogits
+2025-10-05 14:32:11,908 INFO Optimizer: AdamW lr=0.0002 weight_decay=0.01
+2025-10-05 14:32:11,908 INFO Scheduler: ReduceLROnPlateau factor=0.5 patience=1
+2025-10-05 14:32:11,908 INFO Training: epochs=1 batch_size=512 steps_per_epoch=28
+2025-10-05 14:34:01,600 INFO Epoch 1/1 - lr 0.000200 - loss 0.4674 - val f1 0.8567 - val auc 0.9608
+2025-10-05 14:34:01,626 INFO Binary validation report:
+                precision    recall  f1-score   support
+
+FALSE POSITIVE       0.99      0.84      0.91      2350
+     CONFIRMED       0.76      0.99      0.86      1152
+
+      accuracy                           0.89      3502
+     macro avg       0.87      0.92      0.88      3502
+  weighted avg       0.92      0.89      0.89      3502
+
+2025-10-05 14:51:35,940 INFO Wrote scores to /Users/raul.kist/Code/rkist/nasa-exoplanets/models/ranking/v0.1/scores.csv (rows=19429)
