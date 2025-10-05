@@ -138,6 +138,28 @@ def train(args):
 	y = label_encoder.fit_transform(df[label_col].astype(str))
 	num_cols, cat_cols = infer_feature_types(df.drop(columns=[label_col]), label_col=None)  # label removed already
 
+	# Optional feature selection
+	if args.features or args.features_file:
+		selected: List[str] = []
+		if args.features:
+			selected.extend([s.strip() for s in args.features.split(",") if s.strip()])
+		if args.features_file:
+			p = Path(args.features_file)
+			text = p.read_text(encoding="utf-8")
+			try:
+				vals = json.loads(text)
+				if isinstance(vals, list):
+					selected.extend([str(v) for v in vals])
+				else:
+					selected.extend([s.strip() for s in text.replace("\n", ",").split(",") if s.strip()])
+			except Exception:
+				selected.extend([s.strip() for s in text.replace("\n", ",").split(",") if s.strip()])
+		selected_set = set(selected)
+		prev_num, prev_cat = len(num_cols), len(cat_cols)
+		num_cols = [c for c in num_cols if c in selected_set]
+		cat_cols = [c for c in cat_cols if c in selected_set]
+		logger.info(f"Feature selection active: kept {len(num_cols)} numeric and {len(cat_cols)} categorical (from {prev_num}/{prev_cat})")
+
 	# Optionally downsample for quick run
 	if args.sample_frac < 1.0:
 		df, _, y, _ = train_test_split(df, y, train_size=args.sample_frac, stratify=y, random_state=42)
@@ -319,6 +341,8 @@ if __name__ == "__main__":
 	parser.add_argument("--log_file", type=str, default="", help="Optional log file path; creates directories if needed")
 	parser.add_argument("--log_interval", type=int, default=100, help="Steps between batch logs (0 to disable)")
 	parser.add_argument("--verbose", action="store_true", help="Enable DEBUG level logging")
+	parser.add_argument("--features", type=str, default="", help="Comma-separated list of feature column names to use")
+	parser.add_argument("--features_file", type=str, default="", help="Path to a file (JSON list or newline/comma-separated) with feature names")
 	args = parser.parse_args()
 
 	# Configure logging
