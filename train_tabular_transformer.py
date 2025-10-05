@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.backends.cudnn as cudnn
 from sklearn.metrics import f1_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -144,8 +145,13 @@ def train(args):
 		X_num, X_cat, y, test_size=0.2, random_state=42, stratify=y
 	)
 
-	train_ds = ExoDataset(Xn_tr, Xc_tr, y_tr)
-	test_ds = ExoDataset(Xn_te, Xc_te, y_te)
+	# Standardize numeric features using train statistics
+	if Xn_tr.shape[1] > 0:
+		mean = Xn_tr.mean(axis=0, keepdims=True)
+		std = Xn_tr.std(axis=0, keepdims=True)
+		std[std == 0] = 1.0
+		Xn_tr = (Xn_tr - mean) / std
+		Xn_te = (Xn_te - mean) / std
 
 	# Class weights and/or oversampling
 	n_classes = len(label_encoder.classes_)
@@ -155,6 +161,9 @@ def train(args):
 		sample_weights = class_weights_np[y_tr]
 		sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
 
+	# Datasets and loaders
+	train_ds = ExoDataset(Xn_tr, Xc_tr, y_tr)
+	test_ds = ExoDataset(Xn_te, Xc_te, y_te)
 	if sampler is not None:
 		train_loader = DataLoader(train_ds, batch_size=args.batch_size, sampler=sampler, shuffle=False)
 	else:
@@ -175,13 +184,24 @@ def train(args):
 		n_classes=n_classes,
 	).to(DEVICE)
 
-	optimizer = optim.AdamW(model.parameters(), lr=args.lr)
-	if args.class_weight:
+	optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+	# Scheduler (ReduceLROnPlateau on val F1)
+	scheduler = None
+	if args.scheduler == "plateau":
+		scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+			optimizer, mode="max", factor=args.lr_factor, patience=args.lr_patience
+		)
+	# Avoid double balancing: prefer oversampling if both are set
+	use_class_weight = args.class_weight and not args.oversample
+	if use_class_weight:
 		cw = torch.tensor(class_weights_np, dtype=torch.float32, device=DEVICE)
-		criterion = nn.CrossEntropyLoss(weight=cw)
+		criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=args.label_smoothing)
 	else:
-		criterion = nn.CrossEntropyLoss()
+		criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
 
+	best_f1 = -1.0
+	best_state = None
+	no_improve_epochs = 0
 	for epoch in range(args.epochs):
 		model.train()
 		loss_sum = 0.0
@@ -210,6 +230,25 @@ def train(args):
 				y_true.extend(yb.numpy())
 		f1 = f1_score(y_true, y_pred, average="weighted", zero_division=0)
 		print(f"Epoch {epoch+1}/{args.epochs} - loss {loss_sum/max(1,len(train_loader)):.4f} - val f1 {f1:.4f}")
+
+		# LR scheduler step
+		if scheduler is not None:
+			scheduler.step(f1)
+
+		# Track best
+		if f1 > best_f1 + 1e-6:
+			best_f1 = f1
+			best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+			no_improve_epochs = 0
+		else:
+			no_improve_epochs += 1
+			if args.early_stopping_patience > 0 and no_improve_epochs >= args.early_stopping_patience:
+				print("Early stopping: no improvement on val F1")
+				break
+
+	# Load best state (if any) before final save/eval
+	if best_state is not None:
+		model.load_state_dict(best_state)
 
 	# Save artifacts
 	out_dir = Path(args.out)
@@ -247,5 +286,23 @@ if __name__ == "__main__":
 	parser.add_argument("--class_weight", action="store_true", help="Use class-weighted CrossEntropyLoss")
 	parser.add_argument("--oversample", action="store_true", help="Use WeightedRandomSampler on training set")
 	parser.add_argument("--clip_grad_norm", type=float, default=0.0, help="Max global grad norm for clipping (0 to disable)")
+	parser.add_argument("--weight_decay", type=float, default=0.0, help="AdamW weight decay")
+	parser.add_argument("--label_smoothing", type=float, default=0.0, help="CrossEntropy label smoothing (0-1)")
+	parser.add_argument("--scheduler", type=str, default="plateau", choices=["none","plateau"], help="LR scheduler strategy")
+	parser.add_argument("--lr_factor", type=float, default=0.5, help="LR reduction factor for plateau scheduler")
+	parser.add_argument("--lr_patience", type=int, default=2, help="Epochs to wait before LR reduction (plateau)")
+	parser.add_argument("--early_stopping_patience", type=int, default=5, help="Stop if no val F1 improvement for N epochs (0 disables)")
+	parser.add_argument("--seed", type=int, default=42, help="Random seed")
 	args = parser.parse_args()
+
+	# Set seeds for reproducibility
+	import random
+	random.seed(args.seed)
+	np.random.seed(args.seed)
+	torch.manual_seed(args.seed)
+	if torch.cuda.is_available():
+		torch.cuda.manual_seed_all(args.seed)
+	cudnn.deterministic = True
+	cudnn.benchmark = False
+
 	train(args)
