@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -28,17 +29,10 @@ for folder in [UPLOAD_FOLDER, RESULTS_FOLDER, MODELS_FOLDER]:
 def classify():
     """Classify a single exoplanet candidate"""
     try:
-        data = request.json
+        data = request.json or {}
         
         # Extract features
-        features = {
-            'orbital_period': data.get('orbital_period'),
-            'transit_duration': data.get('transit_duration'),
-            'planetary_radius': data.get('planetary_radius'),
-            'eq_temp': data.get('eq_temp'),
-            'stellar_radius': data.get('stellar_radius'),
-            'stellar_mass': data.get('stellar_mass')
-        }
+        features = {col: data.get(col) for col in data_processor.feature_columns}
         
         # Check if model is trained
         if current_model is None:
@@ -56,6 +50,100 @@ def classify():
             'algorithm': model_stats.get('algorithm', 'unknown')
         })
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/classify/jsonl', methods=['POST'])
+def classify_jsonl():
+    """Classify multiple samples provided as JSON Lines"""
+    try:
+        if current_model is None:
+            return jsonify({
+                'error': 'No model trained yet. Please train a model first.'
+            }), 400
+
+        payload = request.json or {}
+        jsonl_text = payload.get('jsonl')
+
+        if jsonl_text is None:
+            return jsonify({'error': 'No JSONL payload provided.'}), 400
+
+        if not isinstance(jsonl_text, str):
+            return jsonify({'error': 'JSONL payload must be a string.'}), 400
+
+        lines = jsonl_text.splitlines()
+        if not lines:
+            return jsonify({'error': 'JSONL payload is empty.', 'results': []}), 400
+
+        valid_records = []
+        valid_line_numbers = []
+        line_results = {}
+
+        for idx, raw_line in enumerate(lines, start=1):
+            stripped = raw_line.strip()
+            if not stripped:
+                line_results[idx] = {
+                    'line': idx,
+                    'status': 'error',
+                    'error': 'Empty line'
+                }
+                continue
+
+            try:
+                record = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                line_results[idx] = {
+                    'line': idx,
+                    'status': 'error',
+                    'error': f'Invalid JSON: {exc.msg}'
+                }
+                continue
+
+            if not isinstance(record, dict):
+                line_results[idx] = {
+                    'line': idx,
+                    'status': 'error',
+                    'error': 'Line does not contain a JSON object'
+                }
+                continue
+
+            valid_records.append(record)
+            valid_line_numbers.append(idx)
+
+        if valid_records:
+            processed = data_processor.preprocess_records(valid_records)
+            predictions, confidences = classifier.predict_batch(processed)
+
+            for line_no, prediction, confidence in zip(valid_line_numbers, predictions, confidences):
+                line_results[line_no] = {
+                    'line': line_no,
+                    'status': 'ok',
+                    'prediction': prediction,
+                    'confidence': float(confidence)
+                }
+
+        results = [line_results[idx] for idx in sorted(line_results.keys())]
+        total = len(lines)
+        processed_count = len(valid_records)
+        failed_count = sum(1 for item in results if item.get('status') == 'error')
+
+        if processed_count == 0:
+            return jsonify({
+                'error': 'No valid JSON lines provided.',
+                'results': results,
+                'total': total,
+                'processed': processed_count,
+                'failed': failed_count
+            }), 400
+
+        return jsonify({
+            'results': results,
+            'total': total,
+            'processed': processed_count,
+            'failed': failed_count
+        })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

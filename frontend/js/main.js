@@ -76,18 +76,41 @@ function updateSlider(id) {
 
 // Classify single data point
 async function classifyData() {
-    const data = {
-        orbital_period: parseFloat(document.getElementById('orbital_period').value),
-        transit_duration: parseFloat(document.getElementById('transit_duration').value),
-        planetary_radius: parseFloat(document.getElementById('planetary_radius').value),
-        eq_temp: parseFloat(document.getElementById('eq_temp').value),
-        stellar_radius: parseFloat(document.getElementById('stellar_radius').value),
-        stellar_mass: parseFloat(document.getElementById('stellar_mass').value)
-    };
-    
-    // Validate required fields
-    if (!data.orbital_period || !data.transit_duration || !data.planetary_radius) {
-        alert('Please fill in at least the first three fields (Orbital Period, Transit Duration, and Planetary Radius)');
+    const featureFields = [
+        { id: 'metallicity', label: 'Metallicity' },
+        { id: 'eff_temp', label: 'Effective Temperature' },
+        { id: 'gkcolor', label: 'g-k Color Index' },
+        { id: 'extinction', label: 'Extinction' },
+        { id: 'grcolor', label: 'g-r Color Index' },
+        { id: 'radius', label: 'Planet Radius' },
+        { id: 'jkcolor', label: 'j-k Color Index' },
+        { id: 'surface_gravity', label: 'Surface Gravity' },
+        { id: 'reddening', label: 'Reddening' }
+    ];
+
+    const data = {};
+    const missingFields = [];
+
+    featureFields.forEach(({ id, label }) => {
+        const input = document.getElementById(id);
+        const rawValue = input.value.trim();
+
+        if (rawValue === '') {
+            missingFields.push(label);
+            return;
+        }
+
+        const numericValue = parseFloat(rawValue);
+        if (!Number.isFinite(numericValue)) {
+            missingFields.push(label);
+            return;
+        }
+
+        data[id] = numericValue;
+    });
+
+    if (missingFields.length > 0) {
+        alert(`Please provide valid numeric values for: ${missingFields.join(', ')}`);
         return;
     }
     
@@ -132,6 +155,80 @@ async function classifyData() {
             </div>
         `;
     }
+}
+
+// Classify JSONL payload
+async function classifyJsonl() {
+    const textarea = document.getElementById('jsonl-input');
+    const resultDiv = document.getElementById('jsonl-result');
+    const payload = textarea.value;
+
+    if (!payload.trim()) {
+        alert('Please paste at least one JSON line before submitting.');
+        return;
+    }
+
+    resultDiv.innerHTML = '<div class="loading"></div> Classifying JSONL payload...';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/classify/jsonl`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ jsonl: payload })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            const summary = `
+                <p><strong>Total Lines:</strong> ${result.total}</p>
+                <p><strong>Processed:</strong> ${result.processed}</p>
+                <p><strong>Failed:</strong> ${result.failed}</p>
+            `;
+
+            const listItems = (result.results || []).map(formatJsonlResult).join('');
+
+            resultDiv.innerHTML = `
+                <div class="result-box" style="margin-top: 20px;">
+                    ${summary}
+                    <ul style="margin-top: 10px; color: #fff;">
+                        ${listItems}
+                    </ul>
+                </div>
+            `;
+        } else {
+            const listItems = (result.results || []).map(formatJsonlResult).join('');
+            resultDiv.innerHTML = `
+                <div class="result-box result-negative" style="margin-top: 20px;">
+                    <p><strong>Error:</strong> ${result.error || 'Unable to classify JSONL payload.'}</p>
+                    ${listItems ? `<ul style="margin-top: 10px;">${listItems}</ul>` : ''}
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="result-box result-negative" style="margin-top: 20px;">
+                <p><strong>Error:</strong> Could not connect to the server. Make sure the backend is running.</p>
+            </div>
+        `;
+    }
+}
+
+function formatJsonlResult(item) {
+    if (!item) {
+        return '';
+    }
+
+    if (item.status === 'ok') {
+        const confidence = typeof item.confidence === 'number'
+            ? `${(item.confidence * 100).toFixed(1)}%`
+            : 'N/A';
+        return `<li><strong>Line ${item.line}:</strong> ${item.prediction} <span style="color: #8b95a5;">(${confidence})</span></li>`;
+    }
+
+    return `<li><strong>Line ${item.line}:</strong> <span style="color: #ef4444;">${item.error || 'Unknown error'}</span></li>`;
 }
 
 // Handle CSV file upload
