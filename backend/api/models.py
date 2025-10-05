@@ -5,6 +5,8 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 import xgboost as xgb
+import catboost as cb
+import lightgbm as lgb
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -31,6 +33,10 @@ class ExoplanetClassifier:
         # Train based on algorithm
         if algorithm == 'xgboost':
             self.model = self._train_xgboost(X_train_scaled, y_train, hyperparameters)
+        elif algorithm == 'catboost':
+            self.model == self._train_catboost(X_train_scaled, y_train, hyperparameters)
+        elif algorithm == 'lightgbm':
+            self.model == self._train_lightgbm(X_train_scaled, y_train, hyperparameters)    
         elif algorithm == 'random-forest':
             self.model = self._train_random_forest(X_train_scaled, y_train, hyperparameters)
         elif algorithm == 'neural-net':
@@ -78,6 +84,43 @@ class ExoplanetClassifier:
             params.update(hyperparams)
         
         model = xgb.XGBClassifier(**params)
+        model.fit(X_train, y_train)
+        return model
+            
+    def _train_catboost(self, X_train, y_train, hyperparams):
+        """Train CatBoost model"""
+        params = {
+            'loss_function': 'MultiClass',
+            'learning_rate': 0.1,
+            'depth': 6,
+            'iterations': 500,
+            'l2_leaf_reg': 3.0,
+            'random_seed': 42,
+            'verbose': False
+        }
+        if hyperparams:
+            params.update(hyperparams)
+
+        model = cb.CatBoostClassifier(**params)
+        model.fit(X_train, y_train)
+        return model
+
+    def _train_lightgbm(self, X_train, y_train, hyperparams):
+        """Train LightGBM model"""
+        params = {
+            'objective': 'multiclass',
+            'num_class': 3,
+            'learning_rate': 0.1,
+            'n_estimators': 500,
+            'max_depth': -1,           # let LightGBM choose
+            'subsample': 0.8,
+            'colsample_bytree': 0.8,
+            'random_state': 42
+        }
+        if hyperparams:
+            params.update(hyperparams)
+
+        model = lgb.LGBMClassifier(**params)
         model.fit(X_train, y_train)
         return model
     
