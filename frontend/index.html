@@ -29,40 +29,40 @@
                 
                 <div class="grid-2">
                     <div class="form-group">
-                        <label>Metallicity [Fe/H] <span class="tooltip" title="Abundance of elements heavier than helium">ⓘ</span></label>
-                        <input type="number" id="metallicity" placeholder="e.g., 0.05" step="0.001">
-                    </div>
-                    <div class="form-group">
                         <label>Effective Temperature (K) <span class="tooltip" title="Surface temperature of the host star">ⓘ</span></label>
                         <input type="number" id="eff_temp" placeholder="e.g., 5778" step="1">
-                    </div>
-                    <div class="form-group">
-                        <label>g-k Color Index <span class="tooltip" title="Brightness difference between g and K bands">ⓘ</span></label>
-                        <input type="number" id="gkcolor" placeholder="e.g., 1.45" step="0.001">
-                    </div>
-                    <div class="form-group">
-                        <label>Extinction (mag) <span class="tooltip" title="Light absorbed or scattered by dust">ⓘ</span></label>
-                        <input type="number" id="extinction" placeholder="e.g., 0.08" step="0.001">
-                    </div>
-                    <div class="form-group">
-                        <label>g-r Color Index <span class="tooltip" title="g band minus r band magnitude">ⓘ</span></label>
-                        <input type="number" id="grcolor" placeholder="e.g., 0.68" step="0.001">
-                    </div>
-                    <div class="form-group">
-                        <label>Planet Radius (R⊕) <span class="tooltip" title="Planet size in Earth radii">ⓘ</span></label>
-                        <input type="number" id="radius" placeholder="e.g., 1.35" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>j-k Color Index <span class="tooltip" title="Infrared brightness difference">ⓘ</span></label>
-                        <input type="number" id="jkcolor" placeholder="e.g., 0.52" step="0.001">
                     </div>
                     <div class="form-group">
                         <label>Surface Gravity (log g) <span class="tooltip" title="Gravitational acceleration at the star's surface">ⓘ</span></label>
                         <input type="number" id="surface_gravity" placeholder="e.g., 4.3" step="0.01" min="0">
                     </div>
                     <div class="form-group">
+                        <label>Metallicity [Fe/H] <span class="tooltip" title="Abundance of elements heavier than helium">ⓘ</span></label>
+                        <input type="number" id="metallicity" placeholder="e.g., 0.05" step="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label>Planet Radius (R⊕) <span class="tooltip" title="Planet size in Earth radii">ⓘ</span></label>
+                        <input type="number" id="radius" placeholder="e.g., 1.35" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
                         <label>Reddening E(B−V) <span class="tooltip" title="Color shift caused by interstellar dust">ⓘ</span></label>
                         <input type="number" id="reddening" placeholder="e.g., 0.04" step="0.001" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Extinction (mag) <span class="tooltip" title="Light absorbed or scattered by dust">ⓘ</span></label>
+                        <input type="number" id="extinction" placeholder="e.g., 0.08" step="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label>g-k Color Index <span class="tooltip" title="Brightness difference between g and K bands">ⓘ</span></label>
+                        <input type="number" id="gkcolor" placeholder="e.g., 1.45" step="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label>g-r Color Index <span class="tooltip" title="g band minus r band magnitude">ⓘ</span></label>
+                        <input type="number" id="grcolor" placeholder="e.g., 0.68" step="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label>j-k Color Index <span class="tooltip" title="Infrared brightness difference">ⓘ</span></label>
+                        <input type="number" id="jkcolor" placeholder="e.g., 0.52" step="0.001">
                     </div>
                 </div>
 
@@ -74,7 +74,7 @@
             <div class="card">
                 <h2>JSONL Quick Classify</h2>
                 <p style="color: #8b95a5; margin-bottom: 20px;">Paste JSON Lines (one JSON object per line) containing the nine key features to classify multiple samples at once.</p>
-                <textarea id="jsonl-input" rows="8" placeholder='{"metallicity": 0.05, "eff_temp": 5778, "gkcolor": 1.45, "extinction": 0.08, "grcolor": 0.68, "radius": 1.35, "jkcolor": 0.52, "surface_gravity": 4.3, "reddening": 0.04}' style="width: 100%; margin-bottom: 15px;"></textarea>
+                <textarea id="jsonl-input" rows="8" placeholder='{"eff_temp": 5778, "surface_gravity": 4.3, "metallicity": 0.05, "radius": 1.35, "reddening": 0.04, "extinction": 0.08, "gkcolor": 1.45, "grcolor": 0.68, "jkcolor": 0.52}' style="width: 100%; margin-bottom: 15px;"></textarea>
                 <button class="btn" onclick="classifyJsonl()">Classify JSONL Data</button>
                 <div id="jsonl-result"></div>
             </div>

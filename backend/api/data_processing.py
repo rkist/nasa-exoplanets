@@ -5,8 +5,8 @@ from sklearn.preprocessing import LabelEncoder
 class DataProcessor:
     def __init__(self):
         self.feature_columns = [
-            'metallicity', 'eff_temp', 'gkcolor', 'extinction',
-            'grcolor', 'radius', 'jkcolor', 'surface_gravity', 'reddening'
+            'eff_temp', 'surface_gravity', 'metallicity', 'radius',
+            'reddening', 'extinction', 'gkcolor', 'grcolor', 'jkcolor'
         ]
         self.label_encoder = LabelEncoder()
         
@@ -111,15 +111,15 @@ class DataProcessor:
         
         # Generate features based on realistic exoplanet characteristics
         data = {
-            'metallicity': np.random.normal(0.0, 0.2, n_samples),
             'eff_temp': np.random.normal(5500, 900, n_samples),
-            'gkcolor': np.random.normal(1.5, 0.3, n_samples),
-            'extinction': np.abs(np.random.normal(0.05, 0.03, n_samples)),
-            'grcolor': np.random.normal(0.7, 0.2, n_samples),
-            'radius': np.random.lognormal(np.log(1.8), 0.5, n_samples),
-            'jkcolor': np.random.normal(0.5, 0.1, n_samples),
             'surface_gravity': np.random.normal(4.3, 0.3, n_samples),
-            'reddening': np.abs(np.random.normal(0.04, 0.02, n_samples))
+            'metallicity': np.random.normal(0.0, 0.2, n_samples),
+            'radius': np.random.lognormal(np.log(1.8), 0.5, n_samples),
+            'reddening': np.abs(np.random.normal(0.04, 0.02, n_samples)),
+            'extinction': np.abs(np.random.normal(0.05, 0.03, n_samples)),
+            'gkcolor': np.random.normal(1.5, 0.3, n_samples),
+            'grcolor': np.random.normal(0.7, 0.2, n_samples),
+            'jkcolor': np.random.normal(0.5, 0.1, n_samples)
         }
         
         df = pd.DataFrame(data)

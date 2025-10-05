@@ -72,15 +72,15 @@ function updateSlider(id) {
 // Classify single data point
 async function classifyData() {
     const featureFields = [
-        { id: 'metallicity', label: 'Metallicity' },
         { id: 'eff_temp', label: 'Effective Temperature' },
-        { id: 'gkcolor', label: 'g-k Color Index' },
-        { id: 'extinction', label: 'Extinction' },
-        { id: 'grcolor', label: 'g-r Color Index' },
-        { id: 'radius', label: 'Planet Radius' },
-        { id: 'jkcolor', label: 'j-k Color Index' },
         { id: 'surface_gravity', label: 'Surface Gravity' },
-        { id: 'reddening', label: 'Reddening' }
+        { id: 'metallicity', label: 'Metallicity' },
+        { id: 'radius', label: 'Planet Radius' },
+        { id: 'reddening', label: 'Reddening' },
+        { id: 'extinction', label: 'Extinction' },
+        { id: 'gkcolor', label: 'g-k Color Index' },
+        { id: 'grcolor', label: 'g-r Color Index' },
+        { id: 'jkcolor', label: 'j-k Color Index' }
     ];
 
     const data = {};
