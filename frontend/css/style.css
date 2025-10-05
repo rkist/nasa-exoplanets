@@ -202,6 +202,87 @@ input:focus, select:focus, textarea:focus {
     margin-top: 20px;
 }
 
+.jsonl-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.jsonl-instructions {
+    flex: 1 1 320px;
+    color: #8b95a5;
+    line-height: 1.7;
+}
+
+.jsonl-example {
+    background: rgba(17, 23, 46, 0.85);
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid rgba(102, 126, 234, 0.25);
+    margin-top: 14px;
+    font-size: 0.85em;
+    color: #e2e7ff;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.jsonl-fields {
+    flex: 1 1 220px;
+    background: rgba(102, 126, 234, 0.12);
+    border-radius: 16px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    padding: 18px;
+    min-width: 220px;
+}
+
+.jsonl-fields-title {
+    display: block;
+    font-size: 0.78em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #cbd5ff;
+    margin-bottom: 12px;
+}
+
+.jsonl-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.jsonl-field-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(15, 20, 40, 0.65);
+    border: 1px solid rgba(102, 126, 234, 0.35);
+    font-size: 0.9em;
+    color: #e2e7ff;
+    letter-spacing: 0.01em;
+}
+
+.jsonl-input {
+    width: 100%;
+    margin-bottom: 18px;
+    resize: vertical;
+    min-height: 190px;
+}
+
+.jsonl-required-footer {
+    margin-top: 18px;
+    font-size: 0.9em;
+    color: #8b95a5;
+}
+
+.jsonl-required-footer .jsonl-fields-grid {
+    margin-top: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
 .model-summary-section {
     margin-top: 35px;
 }
@@ -566,10 +647,77 @@ input:focus, select:focus, textarea:focus {
 
 .tooltip {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
     cursor: help;
     color: #667eea;
-    margin-left: 5px;
+    margin-left: 6px;
+    background: rgba(102, 126, 234, 0.12);
+    border-radius: 50%;
+    font-size: 0.9em;
+    line-height: 1;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    z-index: 20;
+}
+
+.tooltip:hover,
+.tooltip.tooltip-active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.6);
+}
+
+.tooltip:focus-visible {
+    outline: 2px solid rgba(102, 126, 234, 0.6);
+    outline-offset: 2px;
+}
+
+.tooltip-popover {
+    position: absolute;
+    background: rgba(9, 14, 30, 0.96);
+    color: #e0e6ed;
+    padding: 12px 16px;
+    border-radius: 12px;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.4;
+    min-width: 200px;
+    max-width: 320px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+    font-size: 0.9em;
+    z-index: 999;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.tooltip-popover.tooltip-popover-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip-popover::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent;
+}
+
+.tooltip-popover[data-placement="bottom"]::before {
+    top: -14px;
+    border-bottom-color: rgba(9, 14, 30, 0.96);
+}
+
+.tooltip-popover[data-placement="top"]::before {
+    bottom: -14px;
+    border-top-color: rgba(9, 14, 30, 0.96);
 }
 
 .hyperparams-section {
@@ -612,4 +760,13 @@ input:focus, select:focus, textarea:focus {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+.jsonl-instructions code,
+.jsonl-required-footer code {
+    background: rgba(102, 126, 234, 0.14);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.9em;
+    color: #cbd5ff;
 }

@@ -17,7 +17,6 @@
 
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="switchTab(event, 'classify')">Classify Data</button>
-            <button class="tab-btn" onclick="switchTab(event, 'stats')">Model Statistics</button>
             <button class="tab-btn" onclick="switchTab(event, 'about')">About</button>
         </div>
 
@@ -72,10 +71,27 @@
             </div>
 
             <div class="card">
-                <h2>JSONL Quick Classify</h2>
-                <p style="color: #8b95a5; margin-bottom: 20px;">Paste JSON Lines (one JSON object per line) containing the nine key features to classify multiple samples at once.</p>
-                <textarea id="jsonl-input" rows="8" placeholder='{"eff_temp": 5778, "surface_gravity": 4.3, "metallicity": 0.05, "radius": 1.35, "reddening": 0.04, "extinction": 0.08, "gkcolor": 1.45, "grcolor": 0.68, "jkcolor": 0.52}' style="width: 100%; margin-bottom: 15px;"></textarea>
-                <button class="btn" onclick="classifyJsonl()">Classify JSONL Data</button>
+                <h2>JSON Multiple Classifier</h2>
+                <div class="jsonl-layout">
+                    <div class="jsonl-instructions">
+                        <p>Provide either newline-delimited JSON objects (JSONL) or a JSON array. Each object must include the nine required feature keys shown below:</p>
+                        <pre class="jsonl-example">[
+  {
+    "eff_temp": 5778,
+    "surface_gravity": 4.30,
+    "metallicity": 0.05,
+    "radius": 1.35,
+    "reddening": 0.04,
+    "extinction": 0.08,
+    "gkcolor": 1.45,
+    "grcolor": 0.68,
+    "jkcolor": 0.52
+  }
+]</pre>
+                    </div>
+                </div>
+                <textarea id="jsonl-input" rows="8" class="jsonl-input" placeholder='{"eff_temp": 5778, "surface_gravity": 4.3, "metallicity": 0.05, "radius": 1.35, "reddening": 0.04, "extinction": 0.08, "gkcolor": 1.45, "grcolor": 0.68, "jkcolor": 0.52}'></textarea>
+                <button class="btn" onclick="classifyJsonl()">Classify JSON Payload</button>
                 <div id="jsonl-result"></div>
             </div>
 
@@ -90,78 +106,6 @@
                     <small style="color: #8b95a5;">Supports Kepler, K2, and TESS data formats</small>
                 </div>
                 <div id="upload-status"></div>
-            </div>
-        </div>
-
-        <!-- Stats Tab -->
-        <div id="stats" class="tab-content">
-            <div class="card">
-                <h2>Model Performance Statistics</h2>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Overall Accuracy</div>
-                        <div class="stat-value" id="accuracy-stat">--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Precision</div>
-                        <div class="stat-value" id="precision-stat">--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Recall</div>
-                        <div class="stat-value" id="recall-stat">--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">F1 Score</div>
-                        <div class="stat-value" id="f1-stat">--</div>
-                    </div>
-                </div>
-
-                <div class="model-summary-section">
-                    <div class="model-summary-header-row">
-                        <h3>Ensemble Snapshot</h3>
-                        <div class="model-summary-legend">
-                            <span class="legend-pill legend-pill-candidate">True Candidates</span>
-                            <span class="legend-pill legend-pill-fp">False Alarms</span>
-                            <span class="legend-pill legend-pill-fn">Missed Candidates</span>
-                        </div>
-                    </div>
-                    <div id="model-summary" class="model-summary-grid"></div>
-                </div>
-
-                <div class="info-section" style="margin-top: 30px;">
-                    <h3 style="color: #667eea; margin-bottom: 15px;">Model Information</h3>
-                    <p><strong>Active Model:</strong> <span id="current-model">Not trained yet</span></p>
-                    <p><strong>Decision Threshold:</strong> <span id="current-threshold">--</span></p>
-                    <p><strong>Last Updated:</strong> <span id="last-updated">--</span></p>
-                </div>
-
-                <div class="form-group" style="margin-top: 20px;">
-                    <label>Select Model</label>
-                    <select id="threshold-model" onchange="syncThresholdFromSelect()" style="width: 100%;"></select>
-                </div>
-
-                <div class="form-group" style="margin-top: 20px;">
-                    <label>Adjust Candidate Threshold</label>
-                    <div class="slider-container">
-                        <input type="range" class="slider" id="threshold-slider" min="10" max="90" value="50" oninput="updateThresholdPreview()">
-                        <span class="slider-value" id="threshold-slider-value">0.50</span>
-                    </div>
-                    <button class="btn" style="margin-top: 10px;" onclick="applyThreshold()">Update Threshold</button>
-                </div>
-
-                <div id="model-metrics" style="margin-top: 20px;"></div>
-
-                <div class="card" style="background: rgba(30, 35, 50, 0.8); margin-top: 20px;">
-                    <h3 style="color: #667eea;">Confusion Matrix</h3>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px;">
-                        <div class="stat-card"><strong>True Candidate</strong><br><span style="font-size: 1.5em; color: #10b981;" id="tp-stat">--</span></div>
-                        <div class="stat-card"><strong>False Alarm</strong><br><span style="font-size: 1.5em; color: #ef4444;" id="fp-stat">--</span></div>
-                        <div class="stat-card"><strong>Missed Candidate</strong><br><span style="font-size: 1.5em; color: #ef4444;" id="fn-stat">--</span></div>
-                    </div>
-                </div>
-
-                <button class="btn" onclick="loadModelStats()" style="margin-top: 20px;">Refresh Statistics</button>
             </div>
         </div>
 

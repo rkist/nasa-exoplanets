@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     createStars();
     initializeSliders();
     resetStatsDisplay();
+    initializeTooltips();
 });
 
 // Create animated stars background
@@ -24,6 +25,151 @@ function createStars() {
         star.style.animationDelay = Math.random() * 3 + 's';
         starsContainer.appendChild(star);
     }
+}
+
+let activeTooltip = null;
+let tooltipPopover = null;
+
+function initializeTooltips() {
+    const tooltips = document.querySelectorAll('.tooltip');
+    if (!tooltips.length) {
+        return;
+    }
+
+    tooltips.forEach((tooltip) => {
+        const original = tooltip.getAttribute('data-tooltip') || tooltip.getAttribute('title');
+        if (original) {
+            tooltip.dataset.tooltip = original;
+            tooltip.removeAttribute('title');
+        }
+
+        tooltip.setAttribute('tabindex', '0');
+        tooltip.setAttribute('role', 'button');
+        tooltip.setAttribute('aria-expanded', 'false');
+        if (tooltip.dataset.tooltip) {
+            tooltip.setAttribute('aria-label', tooltip.dataset.tooltip);
+        }
+        tooltip.setAttribute('aria-haspopup', 'true');
+
+        tooltip.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleTooltipPopover(tooltip);
+        });
+
+        tooltip.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleTooltipPopover(tooltip);
+            }
+            if (event.key === 'Escape') {
+                hideTooltipPopover();
+                tooltip.blur();
+            }
+        });
+
+        tooltip.addEventListener('blur', () => {
+            if (activeTooltip === tooltip) {
+                hideTooltipPopover();
+            }
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (tooltipPopover && tooltipPopover.contains(event.target)) {
+            return;
+        }
+        if (!event.target.closest('.tooltip')) {
+            hideTooltipPopover();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            hideTooltipPopover();
+        }
+    });
+
+    window.addEventListener('resize', hideTooltipPopover);
+    window.addEventListener('scroll', hideTooltipPopover, true);
+}
+
+function toggleTooltipPopover(tooltip) {
+    if (activeTooltip === tooltip) {
+        hideTooltipPopover();
+    } else {
+        showTooltipPopover(tooltip);
+    }
+}
+
+function showTooltipPopover(tooltip) {
+    const message = tooltip.dataset.tooltip;
+    if (!message) {
+        return;
+    }
+
+    hideTooltipPopover();
+
+    const popover = document.createElement('div');
+    popover.className = 'tooltip-popover';
+    popover.textContent = message;
+
+    document.body.appendChild(popover);
+    updateTooltipPopoverPosition(tooltip, popover);
+
+    requestAnimationFrame(() => {
+        popover.classList.add('tooltip-popover-visible');
+    });
+
+    tooltip.classList.add('tooltip-active');
+    tooltip.setAttribute('aria-expanded', 'true');
+
+    activeTooltip = tooltip;
+    tooltipPopover = popover;
+}
+
+function updateTooltipPopoverPosition(trigger, popover) {
+    if (!trigger || !popover) {
+        return;
+    }
+
+    popover.style.top = '0px';
+    popover.style.left = '0px';
+    popover.style.visibility = 'hidden';
+
+    const rect = trigger.getBoundingClientRect();
+    const popRect = popover.getBoundingClientRect();
+
+    const verticalOffset = 12;
+    const viewportPadding = 16;
+
+    let top = rect.bottom + window.scrollY + verticalOffset;
+    let left = rect.left + window.scrollX + rect.width / 2 - popRect.width / 2;
+    let placement = 'bottom';
+
+    const viewportLeft = window.scrollX + viewportPadding;
+    const viewportRight = window.scrollX + window.innerWidth - viewportPadding;
+    const viewportBottom = window.scrollY + window.innerHeight - viewportPadding;
+
+    if (left < viewportLeft) {
+        left = viewportLeft;
+    }
+    if (left + popRect.width > viewportRight) {
+        left = viewportRight - popRect.width;
+    }
+
+    if (top + popRect.height > viewportBottom) {
+        top = rect.top + window.scrollY - popRect.height - verticalOffset;
+        placement = 'top';
+    }
+
+    if (top < window.scrollY + viewportPadding) {
+        top = window.scrollY + viewportPadding;
+    }
+
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+    popover.dataset.placement = placement;
+    popover.style.visibility = 'visible';
 }
 
 // Tab switching
@@ -486,16 +632,25 @@ function populateThresholdControls(stats) {
 }
 
 function resetStatsDisplay() {
-    document.getElementById('accuracy-stat').textContent = '--';
-    document.getElementById('precision-stat').textContent = '--';
-    document.getElementById('recall-stat').textContent = '--';
-    document.getElementById('f1-stat').textContent = '--';
-    document.getElementById('current-model').textContent = 'Not trained yet';
-    document.getElementById('current-threshold').textContent = '--';
-    document.getElementById('last-updated').textContent = '--';
-    document.getElementById('tp-stat').textContent = '--';
-    document.getElementById('fp-stat').textContent = '--';
-    document.getElementById('fn-stat').textContent = '--';
+    const statDefaults = {
+        'accuracy-stat': '--',
+        'precision-stat': '--',
+        'recall-stat': '--',
+        'f1-stat': '--',
+        'current-model': 'Not trained yet',
+        'current-threshold': '--',
+        'last-updated': '--',
+        'tp-stat': '--',
+        'fp-stat': '--',
+        'fn-stat': '--'
+    };
+
+    Object.entries(statDefaults).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    });
 
     const metricsDiv = document.getElementById('model-metrics');
     if (metricsDiv) {
@@ -516,7 +671,9 @@ function resetStatsDisplay() {
     if (slider) {
         slider.disabled = true;
         slider.value = 50;
-        updateThresholdPreview();
+        if (typeof updateThresholdPreview === 'function') {
+            updateThresholdPreview();
+        }
     }
 }
 
@@ -625,6 +782,18 @@ async function handleFileUpload(input) {
 // Download batch results
 function downloadResults(filename) {
     window.open(`${API_BASE_URL}/download/${filename}`, '_blank');
+}
+
+function hideTooltipPopover() {
+    if (tooltipPopover && tooltipPopover.parentNode) {
+        tooltipPopover.parentNode.removeChild(tooltipPopover);
+    }
+    if (activeTooltip) {
+        activeTooltip.classList.remove('tooltip-active');
+        activeTooltip.setAttribute('aria-expanded', 'false');
+    }
+    activeTooltip = null;
+    tooltipPopover = null;
 }
 
 // Load model statistics

@@ -87,59 +87,90 @@ def classify_jsonl():
             return _model_not_ready_response()
 
         payload = request.json or {}
-        jsonl_text = payload.get('jsonl')
+        json_input = payload.get('jsonl')
 
-        if jsonl_text is None:
-            return jsonify({'error': 'No JSONL payload provided.'}), 400
-        if not isinstance(jsonl_text, str):
-            return jsonify({'error': 'JSONL payload must be a string.'}), 400
+        if json_input is None:
+            return jsonify({'error': 'No JSON payload provided.'}), 400
 
-        lines = jsonl_text.splitlines()
-        if not lines:
-            return jsonify({'error': 'JSONL payload is empty.', 'results': []}), 400
+        raw_objects: List[Dict[str, Any]] = []
+        result_entries: List[Dict[str, Any]] = []
 
-        valid_records: List[Dict[str, Any]] = []
-        valid_line_numbers: List[int] = []
-        line_results: Dict[int, Dict[str, Any]] = {}
+        if isinstance(json_input, str):
+            lines = json_input.splitlines()
+            if not lines:
+                return jsonify({'error': 'JSON content is empty.', 'results': []}), 400
 
-        for idx, raw_line in enumerate(lines, start=1):
-            stripped = raw_line.strip()
-            if not stripped:
-                line_results[idx] = {
+            for idx, raw_line in enumerate(lines, start=1):
+                stripped = raw_line.strip()
+                if not stripped:
+                    result_entries.append({
+                        'line': idx,
+                        'status': 'error',
+                        'error': 'Empty line'
+                    })
+                    continue
+
+                try:
+                    record = json.loads(stripped)
+                except json.JSONDecodeError as exc:
+                    result_entries.append({
+                        'line': idx,
+                        'status': 'error',
+                        'error': f'Invalid JSON: {exc.msg}'
+                    })
+                    continue
+
+                if not isinstance(record, dict):
+                    result_entries.append({
+                        'line': idx,
+                        'status': 'error',
+                        'error': 'Line does not contain a JSON object'
+                    })
+                    continue
+
+                raw_objects.append(record)
+                result_entries.append({
                     'line': idx,
-                    'status': 'error',
-                    'error': 'Empty line'
-                }
-                continue
+                    'status': 'ok',
+                    'predictions': {}
+                })
+        else:
+            json_obj = json_input
+            if isinstance(json_obj, dict):
+                raw_objects.append(json_obj)
+                result_entries.append({
+                    'line': 1,
+                    'status': 'ok',
+                    'predictions': {}
+                })
+            elif isinstance(json_obj, list):
+                if not json_obj:
+                    return jsonify({'error': 'JSON array is empty.', 'results': []}), 400
 
-            try:
-                record = json.loads(stripped)
-            except json.JSONDecodeError as exc:
-                line_results[idx] = {
-                    'line': idx,
-                    'status': 'error',
-                    'error': f'Invalid JSON: {exc.msg}'
-                }
-                continue
+                for idx, record in enumerate(json_obj, start=1):
+                    line_entry = {
+                        'line': idx,
+                        'status': 'ok',
+                        'predictions': {}
+                    }
 
-            if not isinstance(record, dict):
-                line_results[idx] = {
-                    'line': idx,
-                    'status': 'error',
-                    'error': 'Line does not contain a JSON object'
-                }
-                continue
+                    if not isinstance(record, dict):
+                        line_entry['status'] = 'error'
+                        line_entry['error'] = 'Array item is not a JSON object'
+                    else:
+                        raw_objects.append(record)
 
-            line_results[idx] = {
-                'line': idx,
-                'status': 'ok',
-                'predictions': {}
-            }
-            valid_records.append(record)
-            valid_line_numbers.append(idx)
+                    result_entries.append(line_entry)
+            else:
+                return jsonify({'error': 'Unsupported JSON payload type. Provide JSON lines, a list of objects, or a single object.'}), 400
 
-        if valid_records:
-            processed = data_processor.preprocess_records(valid_records)
+        total_records = len(result_entries)
+        processed_indices: List[int] = [idx for idx, entry in enumerate(result_entries) if entry.get('status') == 'ok']
+
+        required_features = data_processor.feature_columns
+
+        if raw_objects:
+            processed = data_processor.preprocess_records(raw_objects)
             batch_outputs = model_manager.predict_batch(processed)
 
             for model_name, output in batch_outputs.items():
@@ -147,37 +178,35 @@ def classify_jsonl():
                 confidences = output['confidences']
                 probabilities = output['probabilities']
 
-                for idx, line_no in enumerate(valid_line_numbers):
-                    entry = line_results.get(line_no)
-                    if not entry or entry.get('status') != 'ok':
-                        continue
+                for pos, entry_index in enumerate(processed_indices):
+                    entry = result_entries[entry_index]
                     entry.setdefault('predictions', {})[model_name] = {
-                        'prediction': predictions[idx],
-                        'confidence': float(confidences[idx]),
-                        'probability': float(probabilities[idx]),
+                        'prediction': predictions[pos],
+                        'confidence': float(confidences[pos]),
+                        'probability': float(probabilities[pos]),
                         'threshold': float(output['threshold'])
                     }
 
-        results = [line_results[idx] for idx in sorted(line_results.keys())]
-        total = len(lines)
-        processed_count = len(valid_records)
-        failed_count = sum(1 for item in results if item.get('status') == 'error')
+        failed_count = sum(1 for entry in result_entries if entry.get('status') == 'error')
+        processed_count = len(raw_objects)
+
+        for entry in result_entries:
+            if entry.get('status') != 'ok':
+                entry.pop('predictions', None)
+
+        response_payload = {
+            'results': result_entries,
+            'total': total_records,
+            'processed': processed_count,
+            'failed': failed_count,
+            'required_features': required_features
+        }
 
         if processed_count == 0:
-            return jsonify({
-                'error': 'No valid JSON lines provided.',
-                'results': results,
-                'total': total,
-                'processed': processed_count,
-                'failed': failed_count
-            }), 400
+            response_payload['error'] = 'No valid JSON records provided.'
+            return jsonify(response_payload), 400
 
-        return jsonify({
-            'results': results,
-            'total': total,
-            'processed': processed_count,
-            'failed': failed_count
-        })
+        return jsonify(response_payload)
 
     except Exception as exc:  # pragma: no cover - defensive
         return jsonify({'error': str(exc)}), 500
