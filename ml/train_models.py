@@ -18,7 +18,7 @@ from ml.models import (
 # ====================================================
 # 🔹 Train & Save Utility
 # ====================================================
-def train_and_save(model_class, X_train, X_test, y_train, y_test, out_dir, model_name, scale, pos_label=1):
+def train_and_save(model_class, X_train, X_test, y_train, y_test, out_dir, model_name, scale, pos_label=0):
     """Train, evaluate, and save a model with markdown .info report."""
     print(f"\nTraining {model_name}...")
     model = model_class(scale_data=scale)
@@ -167,8 +167,8 @@ def run_training(
     print("\n📊 Class distribution after filtering:")
     print(y.value_counts(normalize=True).round(3))
 
-    y_binary = y.apply(lambda value: 1 if value == pos_label else 0)
-    print(f"\n✅ Using '{pos_label}' as positive class (1), all others as 0")
+    y_binary = y.apply(lambda value: 0 if value == pos_label else 1)
+    print(f"\n✅ Mapping '{pos_label}' to 0 and all other classes to 1")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y_binary, test_size=test_size, random_state=42, stratify=y_binary
@@ -187,7 +187,7 @@ def run_training(
 
     for name, cls in models.items():
         results.append(
-            train_and_save(cls, X_train, X_test, y_train, y_test, out_dir, name, scale)
+            train_and_save(cls, X_train, X_test, y_train, y_test, out_dir, name, scale, pos_label=0)
         )
 
     return results
