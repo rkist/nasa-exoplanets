@@ -114,6 +114,34 @@ def build_arrays(df: pd.DataFrame, num_cols: List[str], cat_cols: List[str]) -> 
 	return X_num_arr, X_cat, {c: m for c, m in cat_maps.items()}
 
 
+def build_arrays_with_maps(df: pd.DataFrame, num_cols: List[str], cat_cols: List[str], cat_maps: Dict[str, Dict[str, int]] | None) -> Tuple[np.ndarray, np.ndarray, Dict[str, Dict[str, int]]]:
+	"""Build arrays optionally using precomputed categorical maps for consistency with a saved model."""
+	# Numeric handling identical to build_arrays
+	X_num = df[num_cols].copy() if num_cols else pd.DataFrame(index=df.index)
+	for c in num_cols:
+		col = X_num[c].astype(float)
+		if col.notna().any():
+			med = col.median()
+			col = col.fillna(med)
+		else:
+			col = pd.Series(0.0, index=col.index)
+		X_num[c] = col
+
+	# Categorical handling
+	if cat_maps is None:
+		# Fall back to discovering maps from data
+		return build_arrays(df, num_cols, cat_cols)
+	X_cat_list: List[np.ndarray] = []
+	for c in cat_cols:
+		vc = df[c].astype(str).fillna("<NA>")
+		mapping = cat_maps.get(c, {})
+		# Map known values; unknowns -> -1
+		X_cat_list.append(vc.map(mapping).fillna(-1).astype(int).to_numpy())
+	X_cat = np.stack(X_cat_list, axis=1) if X_cat_list else np.zeros((len(df), 0), dtype=np.int64)
+	X_num_arr = X_num.to_numpy() if len(num_cols) else np.zeros((len(df), 0), dtype=np.float32)
+	return X_num_arr, X_cat, cat_maps
+
+
 def compute_class_weights(y: np.ndarray, n_classes: int) -> np.ndarray:
     counts = np.bincount(y, minlength=n_classes)
     # Avoid divide-by-zero; weight ~ inverse frequency
@@ -137,7 +165,18 @@ def train(args):
 	# Binary target: 1 = CONFIRMED, 0 = FALSE POSITIVE; candidates marked -1 (excluded from train/val)
 	label_str = df[label_col].astype(str)
 	y_all = np.where(label_str == "CONFIRMED", 1, np.where(label_str == "FALSE POSITIVE", 0, -1)).astype(int)
-	num_cols, cat_cols = infer_feature_types(df.drop(columns=[label_col]), label_col=None)
+	# Optionally load a saved feature schema and model
+	loaded_artifacts = None
+	if args.load_model_dir:
+		model_dir = Path(args.load_model_dir)
+		with (model_dir / "feature_config.json").open("r", encoding="utf-8") as f:
+			loaded_artifacts = json.load(f)
+		# Enforce the same feature ordering and maps as training
+		num_cols = loaded_artifacts.get("num_cols", [])
+		cat_cols = loaded_artifacts.get("cat_cols", [])
+		loaded_cat_maps = {k: {kk: int(vv) for kk, vv in m.items()} for k, m in loaded_artifacts.get("cat_maps", {}).items()}
+	else:
+		num_cols, cat_cols = infer_feature_types(df.drop(columns=[label_col]), label_col=None)
 
 	# Optionally downsample for quick run (on labeled subset only)
 	labeled_mask = y_all >= 0
@@ -150,7 +189,11 @@ def train(args):
 		label_str = df[label_col].astype(str)
 		y_all = np.where(label_str == "CONFIRMED", 1, np.where(label_str == "FALSE POSITIVE", 0, -1)).astype(int)
 
-	X_num, X_cat, cat_maps = build_arrays(df.drop(columns=[label_col]), num_cols, cat_cols)
+	# Build arrays using loaded maps if provided
+	if args.load_model_dir and loaded_artifacts is not None:
+		X_num, X_cat, cat_maps = build_arrays_with_maps(df.drop(columns=[label_col]), num_cols, cat_cols, loaded_cat_maps)
+	else:
+		X_num, X_cat, cat_maps = build_arrays(df.drop(columns=[label_col]), num_cols, cat_cols)
 	# Train/val split only on labeled data (exclude candidates)
 	X_num_lab = X_num[y_all >= 0]
 	X_cat_lab = X_cat[y_all >= 0]
@@ -199,16 +242,34 @@ def train(args):
 	# Binary head
 	n_classes = 1
 
+	# If loading a model, prefer the saved architecture hyperparameters
+	arch_embed_dim = args.embed_dim
+	arch_heads = args.heads
+	arch_layers = args.layers
+	arch_dropout = args.dropout
+	if loaded_artifacts is not None:
+		arch_embed_dim = int(loaded_artifacts.get("embed_dim", arch_embed_dim))
+		arch_heads = int(loaded_artifacts.get("heads", arch_heads))
+		arch_layers = int(loaded_artifacts.get("layers", arch_layers))
+		arch_dropout = float(loaded_artifacts.get("dropout", arch_dropout))
+
 	model = TabularTransformer(
 		cat_dims=cat_dims,
 		num_features_len=num_features_len,
-		embed_dim=args.embed_dim,
-		n_heads=args.heads,
-		n_layers=args.layers,
-		dropout=args.dropout,
+		embed_dim=arch_embed_dim,
+		n_heads=arch_heads,
+		n_layers=arch_layers,
+		dropout=arch_dropout,
 		n_classes=n_classes,
 	).to(DEVICE)
-	logger.info(f"Model: FT-Transformer embed_dim={args.embed_dim} heads={args.heads} layers={args.layers} dropout={args.dropout}")
+	logger.info(f"Model: FT-Transformer embed_dim={arch_embed_dim} heads={arch_heads} layers={arch_layers} dropout={arch_dropout}")
+
+	# If a pretrained model is provided, load weights
+	if args.load_model_dir:
+		state_path = Path(args.load_model_dir) / "tabular_transformer.pt"
+		assert state_path.exists(), f"No model weights found at {state_path}"
+		model.load_state_dict(torch.load(state_path, map_location=DEVICE))
+		logger.info(f"Loaded pretrained weights from {state_path}")
 
 	optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 	# Scheduler (ReduceLROnPlateau on val F1)
@@ -235,7 +296,14 @@ def train(args):
 	if scheduler is not None:
 		logger.info(f"Scheduler: ReduceLROnPlateau factor={args.lr_factor} patience={args.lr_patience}")
 	logger.info(f"Training: epochs={args.epochs} batch_size={args.batch_size} steps_per_epoch={len(train_loader)}")
-	for epoch in range(args.epochs):
+	# Optionally skip training and run validation only
+	start_epoch = 0
+	end_epoch = args.epochs
+	if args.eval_only:
+		start_epoch = 0
+		end_epoch = 0
+
+	for epoch in range(start_epoch, end_epoch):
 		model.train()
 		loss_sum = 0.0
 		step = 0
@@ -291,28 +359,48 @@ def train(args):
 				logger.warning("Early stopping: no improvement on val F1")
 				break
 
-	# Load best state (if any) before final save/eval
-	if best_state is not None:
+	# Load best state (if any) before final save/eval (only when training ran)
+	if best_state is not None and not args.eval_only:
 		model.load_state_dict(best_state)
 
-	# Save artifacts
-	out_dir = Path(args.out)
-	out_dir.mkdir(parents=True, exist_ok=True)
-	artifacts = {
-		"num_cols": num_cols,
-		"cat_cols": cat_cols,
-		"cat_maps": {k: {str(kk): int(vv) for kk, vv in m.items()} for k, m in cat_maps.items()},
-		"labels": ["FALSE POSITIVE", "CONFIRMED"],
-		"target": "prob_confirmed",
-		"embed_dim": args.embed_dim,
-		"heads": args.heads,
-		"layers": args.layers,
-		"dropout": args.dropout,
-	}
-	(torch.save(model.state_dict(), out_dir / "tabular_transformer.pt"))
-	with (out_dir / "feature_config.json").open("w", encoding="utf-8") as f:
-		json.dump(artifacts, f, indent=2)
+	# Save artifacts only when training (avoid overwriting pretrained model during eval-only)
+	if not args.eval_only:
+		out_dir = Path(args.out)
+		out_dir.mkdir(parents=True, exist_ok=True)
+		artifacts = {
+			"num_cols": num_cols,
+			"cat_cols": cat_cols,
+			"cat_maps": {k: {str(kk): int(vv) for kk, vv in m.items()} for k, m in cat_maps.items()},
+			"labels": ["FALSE POSITIVE", "CONFIRMED"],
+			"target": "prob_confirmed",
+			"embed_dim": arch_embed_dim,
+			"heads": arch_heads,
+			"layers": arch_layers,
+			"dropout": arch_dropout,
+		}
+		(torch.save(model.state_dict(), out_dir / "tabular_transformer.pt"))
+		with (out_dir / "feature_config.json").open("w", encoding="utf-8") as f:
+			json.dump(artifacts, f, indent=2)
 
+	# Final validation evaluation (works for both training and eval-only paths)
+	model.eval()
+	y_true, y_pred, y_prob = [], [], []
+	with torch.no_grad():
+		for xb_num, xb_cat, yb in test_loader:
+			xb_num = xb_num.to(DEVICE)
+			xb_cat = xb_cat.to(DEVICE)
+			logits = model(xb_num, xb_cat).squeeze(1)
+			prob = torch.sigmoid(logits).cpu().numpy()
+			pred = (prob >= 0.5).astype(int)
+			y_prob.extend(prob.tolist())
+			y_pred.extend(pred.tolist())
+			y_true.extend(yb.numpy())
+	val_f1 = f1_score(y_true, y_pred, average="binary", zero_division=0)
+	try:
+		val_auc = roc_auc_score(y_true, y_prob)
+	except Exception:
+		val_auc = float("nan")
+	logger.info(f"Final validation - f1 {val_f1:.4f} - auc {val_auc:.4f}")
 	logger.info("Binary validation report:\n" + classification_report(y_true, y_pred, target_names=["FALSE POSITIVE", "CONFIRMED"], zero_division=0))
 
 	# Scoring: compute probability for all rows (including CANDIDATE) and write CSV
@@ -323,8 +411,17 @@ def train(args):
 			X_num_all = (X_num - mean) / std
 		else:
 			X_num_all = X_num
-		logits_all = model(torch.tensor(X_num_all.astype(np.float32)).to(DEVICE), torch.tensor(X_cat.astype(np.int64)).to(DEVICE)).squeeze(1)
-		probs_all = torch.sigmoid(logits_all).cpu().numpy()
+		# Batch scoring to avoid OOM/memory pressure
+		full_ds = ExoDataset(X_num_all, X_cat, y=None)
+		full_loader = DataLoader(full_ds, batch_size=args.batch_size, shuffle=False)
+		probs_list: List[np.ndarray] = []
+		for xb_num, xb_cat, _ in full_loader:
+			xb_num = xb_num.to(DEVICE)
+			xb_cat = xb_cat.to(DEVICE)
+			logits = model(xb_num, xb_cat).squeeze(1)
+			probs = torch.sigmoid(logits).cpu().numpy()
+			probs_list.append(probs)
+		probs_all = np.concatenate(probs_list, axis=0)
 
 	scores_df = pd.DataFrame({
 		"prob_confirmed": probs_all,
@@ -372,6 +469,8 @@ if __name__ == "__main__":
 	parser.add_argument("--log_interval", type=int, default=100, help="Steps between batch logs (0 to disable)")
 	parser.add_argument("--verbose", action="store_true", help="Enable DEBUG level logging")
 	parser.add_argument("--scores_out", type=str, default="ranking/v0.1/scores.csv", help="CSV to write probabilities")
+	parser.add_argument("--load_model_dir", type=str, default="", help="Directory containing pretrained model and feature_config.json to evaluate/score")
+	parser.add_argument("--eval_only", action="store_true", help="Skip training and run validation (and scoring) using a loaded model")
 	parser.add_argument("--score_only_candidates", action="store_true", help="Write scores only for CANDIDATE rows")
 	args = parser.parse_args()
 
