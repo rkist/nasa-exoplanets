@@ -1,8 +1,9 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = window.env?.API_BASE_URL || 'http://localhost:5000/api';
 const POSITIVE_LABEL = 'Candidate';
 const NEGATIVE_LABEL = 'Likely False Positive';
 let cachedModelStats = null;
+console.log("API_BASE_URL:", API_BASE_URL);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {

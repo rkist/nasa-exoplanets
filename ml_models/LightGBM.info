@@ -15,6 +15,9 @@
 - F1: 0.9998
 - Confusion Matrix: [[2678, 0], [2, 5681]]
 
+- Threshold: 0.252
+this if we want candidate to be more sure.
+
 ## All Threshold Results (sorted by best F1)
 | Threshold | Accuracy | Recall | Precision | F1 | Confusion Matrix |
 |-----------|-----------|---------|------------|----|------------------|

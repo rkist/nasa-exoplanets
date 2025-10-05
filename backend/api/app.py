@@ -12,10 +12,10 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 # Ensure project root is available for imports
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.append(str(BASE_DIR))
-
+    
 from data_processing import DataProcessor  # noqa: E402
 from model_manager import ModelManager  # noqa: E402
 from ml.train_models import run_training  # noqa: E402
@@ -25,7 +25,7 @@ CORS(app)
 
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 RESULTS_FOLDER = BASE_DIR / 'results'
-MODELS_FOLDER = BASE_DIR / 'ml_models'
+MODELS_FOLDER = BASE_DIR / 'saved_models'
 
 for folder in (UPLOAD_FOLDER, RESULTS_FOLDER, MODELS_FOLDER):
     folder.mkdir(parents=True, exist_ok=True)
