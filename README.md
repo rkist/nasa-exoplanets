@@ -9,10 +9,16 @@ When the self-supervised backbone is fine-tuned on curated confirmation labels a
 By packaging the model inside an accessible web API and UI, we equip mission scientists and citizen researchers to score new stars instantly, prioritize follow-up observations, and accelerate the validation cycle for small, low-signal planets that traditional pipelines overlook.
 
 ## Highlights
-- Five production-ready classifiers loaded by default: RandomForest, XGBoost, LightGBM, CatBoost, and the new RankingTransformer FT-Transformer (`models/ranking/v0.3-selected_cols`).
+- Self-supervised FT-Transformer (RankingTransformer) fine-tuned for exoplanet ranking after pretraining on unlabeled Kepler summaries (`models/ranking/v0.3-selected_cols`).
+- Gradient-boosted ensemble—RandomForest, XGBoost, LightGBM, CatBoost—provides interpretable cross-checks and model diversity.
 - Consistent preprocessing pipeline that normalizes nine stellar/photometric features before inference.
 - Batch (CSV/JSONL) and single-record prediction flows, plus on-demand model statistics and threshold tuning from the UI.
 - Docker Compose stack that serves the API on `http://localhost:3000/api` and the static frontend on `http://localhost:8080`.
+
+## Self-Supervised Transformer Focus
+- Pretraining objective: contrastive/self-reconstruction tasks over raw Kepler light-curve summaries to learn astrophysically grounded embeddings without labels.
+- Fine-tuning objective: supervised binary classification distinguishing confirmed planets from false positives, with improved recall on low-signal candidates.
+- Deployment: stored normalization stats (`RankingTransformer_config.json`) reproduced in `model_manager.py` ensure inference matches SSL training conditions on CPU-only containers.
 
 ## Feature Inputs
 All models expect the same nine features. Values can be supplied via the UI, JSON, or CSV uploads; missing entries are imputed with training-set medians.
@@ -98,10 +104,16 @@ Ensure environment variables mirror production defaults (`FLASK_ENV=production`,
 - `CatBoost_model.pkl`
 - `RankingTransformer_model.pt` + `RankingTransformer_config.json`
 
-The transformer wrapper (`model_manager.py`) normalizes inputs using the stored statistics before running inference with torch.
+The transformer wrapper (`model_manager.py`) normalizes inputs using the stored statistics before running inference with torch, keeping the self-supervised embedding space aligned between training and production.
 
 ## Training (Optional)
 The repository keeps historical training scripts under `backend/api/ml/` and research notebooks under `models/` and `notebook*.ipynb`. These are not required to run the stack but document how the shipped artifacts were produced.
 
 ## Support
 For issues or enhancement ideas, open an issue or submit a pull request with reproducible steps. Contributions that improve data ingestion, model coverage, or UI diagnostics are welcome.
+
+## Acknowledgements
+- [Kepler Objects of Interest (KOI)](https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=cumulative)
+- [TESS Objects of Interest (TOI)](https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=TOI)
+- [K2 Planets and Candidates](https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=k2pandc)
+- [VIME: Extending the Success of Self- and Semi-supervised Learning to Tabular Domain (ACM)](https://dl.acm.org/doi/pdf/10.5555/3495724.3496650)
