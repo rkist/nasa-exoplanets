@@ -1,0 +1,4 @@
+# Model Report: RankingTransformer
+- Timestamp: 2024-10-06 00:00:00
+- Threshold: 0.5
+- Notes: FT-Transformer ranking model trained on Kepler summary (v0.3-selected_cols)

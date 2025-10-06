@@ -1,0 +1,58 @@
+{
+  "num_cols": [
+    "gkcolor",
+    "grcolor",
+    "jkcolor",
+    "reddening",
+    "extinction",
+    "eff_temp",
+    "surface_gravity",
+    "metallicity",
+    "radius"
+  ],
+  "cat_cols": [],
+  "cat_maps": {},
+  "labels": [
+    "FALSE POSITIVE",
+    "CONFIRMED"
+  ],
+  "target": "prob_confirmed",
+  "embed_dim": 128,
+  "heads": 8,
+  "layers": 4,
+  "dropout": 0.1,
+  "medians": {
+    "gkcolor": 2.117,
+    "grcolor": 0.557,
+    "jkcolor": 0.41,
+    "reddening": 0.115,
+    "extinction": 0.356,
+    "eff_temp": 5821.0,
+    "surface_gravity": 4.458,
+    "metallicity": -0.14,
+    "radius": 0.972
+  },
+  "means": {
+    "gkcolor": 2.2322916543267777,
+    "grcolor": 0.5920145906138664,
+    "jkcolor": 0.44026047898279863,
+    "reddening": 0.11464935141857836,
+    "extinction": 0.35539165630119707,
+    "eff_temp": 5775.133368872041,
+    "surface_gravity": 4.351728030168397,
+    "metallicity": -0.16813761377323755,
+    "radius": 1.4782188592075132
+  },
+  "stds": {
+    "gkcolor": 0.7400177541956852,
+    "grcolor": 0.25893929881231703,
+    "jkcolor": 0.18652086590050226,
+    "reddening": 0.03787760701806695,
+    "extinction": 0.11741788424031274,
+    "eff_temp": 815.4190888322777,
+    "surface_gravity": 0.3890812622637524,
+    "metallicity": 0.28596684984055015,
+    "radius": 3.513051181250209
+  },
+  "version": "v0.3-selected_cols"
+}
